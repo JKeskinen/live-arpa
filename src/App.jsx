@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Link2,
   Database,
+  X,
 } from "lucide-react";
 
 const empty = {
@@ -40,6 +41,89 @@ export default function App() {
   const [winner, setWinner] = useState(null);
   const [displayed, setDisplayed] = useState(null);
   const [configNotice, setConfigNotice] = useState("");
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("raffle-theme") === "midnight"
+        ? "midnight"
+        : "prodiscus";
+    } catch {
+      return "prodiscus";
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+
+    try {
+      localStorage.setItem("raffle-theme", theme);
+    } catch {
+      // Teema vaihtuu myös silloin, jos tallennus ei onnistu.
+    }
+  }, [theme]);
+
+  const [branding, setBranding] = useState(() => {
+    try {
+      return (
+        JSON.parse(localStorage.getItem("raffle-branding")) || {
+          image: "",
+          animation: "pulse",
+          showWordmark: true,
+        }
+      );
+    } catch {
+      return {
+        image: "",
+        animation: "pulse",
+        showWordmark: true,
+      };
+    }
+  });
+
+  function updateBranding(next) {
+    setBranding((previous) => {
+      const updated = { ...previous, ...next };
+
+      try {
+        localStorage.setItem("raffle-branding", JSON.stringify(updated));
+      } catch {
+        setError("Kuvan tallennus epäonnistui. Valitse pienempi kuvatiedosto.");
+        return previous;
+      }
+
+      return updated;
+    });
+  }
+
+  function selectBrandingImage(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setError("Valitse PNG-, JPG- tai WebP-kuva.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Kuvan enimmäiskoko on 2 Mt.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      updateBranding({ image: String(reader.result || "") });
+    };
+
+    reader.onerror = () => {
+      setError("Kuvan lukeminen epäonnistui.");
+    };
+
+    reader.readAsDataURL(file);
+  }
 
   const rollTimer = useRef(null);
   const winnerTimer = useRef(null);
@@ -187,6 +271,114 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      <section className="branding-panel panel">
+        <div className="branding-preview">
+          {branding.image ? (
+            <img
+              className={`brand-custom-image animation-${branding.animation}`}
+              src={branding.image}
+              alt="Valittu Prodiscus-arvontakoneen tunnus"
+            />
+          ) : (
+            <div className="prodiscus-wordmark">
+              <span className="prodiscus-disc">P</span>
+              <span>PRODISCUS</span>
+            </div>
+          )}
+        </div>
+
+        <div className="branding-copy">
+          <strong>PRODISCUS</strong>
+          <span>LIVE ARPAKONE</span>
+        </div>
+
+        <button
+          type="button"
+          className="settings-button"
+          onClick={() => setSettingsOpen((open) => !open)}
+        >
+          <Settings2 size={17} />
+          ASETUKSET
+        </button>
+      </section>
+
+      {settingsOpen && (
+        <section className="settings-panel panel">
+          <div className="settings-heading">
+            <div>
+              <div className="section-label">
+                <Settings2 size={15} />
+                ULKOASU JA BRÄNDÄYS
+              </div>
+              <h2>Arvontakoneen asetukset</h2>
+            </div>
+
+            <button
+              type="button"
+              className="settings-close"
+              onClick={() => setSettingsOpen(false)}
+              aria-label="Sulje asetukset"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="settings-grid">
+            <div className="setting-item">
+              <label htmlFor="branding-image">Oma tunnuskuva</label>
+              <input
+                id="branding-image"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={selectBrandingImage}
+              />
+              <small>PNG, JPG tai WebP, enintään 2 Mt.</small>
+
+              {branding.image && (
+                <button
+                  type="button"
+                  className="copy-btn"
+                  onClick={() => updateBranding({ image: "" })}
+                >
+                  Palauta Prodiscus-teksti
+                </button>
+              )}
+            </div>
+
+            <div className="setting-item">
+              <label htmlFor="branding-animation">Kuvan animaatio</label>
+              <select
+                id="branding-animation"
+                value={branding.animation}
+                onChange={(event) =>
+                  updateBranding({ animation: event.target.value })
+                }
+              >
+                <option value="none">Ei animaatiota</option>
+                <option value="spin">Pyörii</option>
+                <option value="pulse">Sykkii</option>
+                <option value="float">Kelluu</option>
+              </select>
+              <small>Valinta näkyy heti kuvan esikatselussa.</small>
+            </div>
+
+            <div className="setting-item">
+              <label htmlFor="app-theme">Väriteema</label>
+              <select
+                id="app-theme"
+                value={theme}
+                onChange={(event) => setTheme(event.target.value)}
+              >
+                <option value="prodiscus">Prodiscus – musta ja oranssi</option>
+                <option value="midnight">Tumma – sininen ja violetti</option>
+              </select>
+              <small>
+                Teema vaihtuu heti ja valinta tallennetaan automaattisesti.
+              </small>
+            </div>
+          </div>
+        </section>
+      )}
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
@@ -313,23 +505,26 @@ export default function App() {
       <section className="stats-grid">
         <Stat
           icon={<MessageSquare size={18} />}
+          label="VIDEON KOMMENTIT"
+          value={state.totalComments}
+          tone="cyan"
+          foot="Kaikki haetut kommentit"
+        />
+
+        <Stat
+          icon={<ShieldCheck size={18} />}
           label="HYVÄKSYTTYJÄ KOMMENTTEJA"
           value={state.acceptedEntries}
-          tone="cyan"
+          tone="purple"
+          foot="Arvontaan hyväksytyt kommentit"
         />
 
         <Stat
           icon={<Users size={18} />}
           label="YKSITTÄISIÄ OSALLISTUJIA"
           value={state.uniqueCommenters}
-          tone="purple"
-        />
-
-        <Stat
-          icon={<Trophy size={18} />}
-          label="ARVONTAOSALLISTUMISIA"
-          value={entries.length}
           tone="gold"
+          foot="Yksilölliset hyväksytyt käyttäjät"
         />
 
         <div className="stat-card updated">
@@ -385,24 +580,28 @@ export default function App() {
               </div>
 
               <div className="reel-center">
-                <div className="reel-avatar">
+                <div
+                  className={`reel-avatar ${rolling && !winner ? "logo-rolling" : ""}`}
+                >
                   {winner ? (
                     <Trophy size={29} />
+                  ) : branding.image ? (
+                    <img
+                      src={branding.image}
+                      alt="Prodiscus-logo"
+                      className="reel-brand-logo"
+                    />
                   ) : (
-                    <span>
-                      {(displayed?.name || "—").slice(0, 1).toUpperCase()}
-                    </span>
+                    <span className="reel-brand-letter">P</span>
                   )}
                 </div>
 
                 <div className="reel-name">
                   {displayed?.name || "VALMIS ARVONTAAN"}
                 </div>
-
                 <div className="reel-comment">
                   {displayed?.text || "Lataa video aloittaaksesi"}
                 </div>
-
                 {winner && (
                   <div className="winner-label">
                     <Trophy size={14} />
