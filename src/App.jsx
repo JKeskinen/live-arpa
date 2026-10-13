@@ -145,17 +145,28 @@ export default function App() {
 
   useEffect(() => {
     if (!window.raffleAPI) {
-      setError("Käynnistä tämä sovellus Electronissa, ei selaimessa.");
-      return;
+      setError(
+        "YouTube-kommenttien haku ei ole käytettävissä selainversiossa. Käytä Windows-sovellusta.",
+      );
+
+      return () => {
+        clearInterval(rollTimer.current);
+        clearTimeout(winnerTimer.current);
+      };
     }
 
-    window.raffleAPI.getConfig().then((config) => {
-      if (!config.configured) {
-        setConfigNotice(
-          "YouTube API -avain puuttuu. Tarkista README.md ja config.json.",
-        );
-      }
-    });
+    window.raffleAPI
+      .getConfig()
+      .then((config) => {
+        if (!config.configured) {
+          setConfigNotice(
+            "YouTube API -avain puuttuu. Tarkista README.md ja config.json.",
+          );
+        }
+      })
+      .catch((err) => {
+        setError(err.message || "Asetusten lukeminen epäonnistui.");
+      });
 
     const offUpdate = window.raffleAPI.onUpdate((data) => {
       setState(data);
@@ -165,7 +176,12 @@ export default function App() {
       setError(message);
     });
 
-    window.raffleAPI.getState().then(setState);
+    window.raffleAPI
+      .getState()
+      .then(setState)
+      .catch((err) => {
+        setError(err.message || "Tilan lukeminen epäonnistui.");
+      });
 
     return () => {
       offUpdate();
