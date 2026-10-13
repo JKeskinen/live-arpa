@@ -188,6 +188,13 @@ export default function App() {
   async function loadStream(event) {
     event?.preventDefault();
 
+    if (!window.raffleAPI) {
+      setError(
+        "YouTube-kommenttien haku ei ole käytettävissä selainversiossa. Käytä Windows-sovellusta.",
+      );
+      return;
+    }
+
     setBusy(true);
     setError("");
     setWinner(null);
