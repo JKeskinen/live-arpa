@@ -1,3 +1,17 @@
+/**
+ * Electron Main Process – Prodiscus Raffleri
+ * ------------------------------------------
+ * Vastaa:
+ * - YouTube API -kutsuista (kiintiön hallinta)
+ * - SQLite-tietokannasta
+ * - Live-chat-pollauksesta (kiinteä 30 s väli)
+ * - IPC-viestinnästä renderer-prosessin kanssa
+ *
+ * Kiintiö (oletus 10 000 yksikköä / päivä):
+ * - liveChat/messages = 5 yksikköä / kutsu
+ * - 30 s väli ≈ 120 kutsua / tunti ≈ 600 yksikköä / tunti
+ */
+
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -13,10 +27,14 @@ let liveChatId = "";
 let videoId = "";
 let apiKey = "";
 let streamTitle = "";
-let streamMode = "normal";
+let streamMode = "normal"; // 'live' | 'normal'
 let normalFetchId = 0;
 
+// Karkea kiintiöseuranta
+let estimatedQuotaUsed = 0;
+
 const MAX_ACCEPTED_PER_AUTHOR = 3;
+const LIVE_POLL_INTERVAL_MS = 30000; // 30 sekuntia
 
 // ------------------------------------------------------------
 // 1. CONFIGURATION
@@ -24,11 +42,7 @@ const MAX_ACCEPTED_PER_AUTHOR = 3;
 
 function readConfig() {
   const configPath = path.join(app.getPath("userData"), "config.json");
-
-  if (!fs.existsSync(configPath)) {
-    return {};
-  }
-
+  if (!fs.existsSync(configPath)) return {};
   try {
     return JSON.parse(fs.readFileSync(configPath, "utf8"));
   } catch {
@@ -43,7 +57,7 @@ function readConfig() {
 function openDatabase() {
   if (db) return;
 
-  const databasePath = path.join(app.getPath("userData"), "live-arpa.sqlite");
+  const databasePath = path.join(app.getPath("userData"), "raffleri.sqlite");
   db = new DatabaseSync(databasePath);
 
   db.exec(`
@@ -58,17 +72,13 @@ function openDatabase() {
     );
   `);
 
-  // Migrate the earlier comments table, if one exists.
   const existingColumns = db.prepare("PRAGMA table_info(comments)").all();
   const hasCommentsTable = existingColumns.length > 0;
-  const hasSourceColumn = existingColumns.some(
-    (column) => column.name === "source",
-  );
+  const hasSourceColumn = existingColumns.some((c) => c.name === "source");
 
   if (hasCommentsTable && !hasSourceColumn) {
     let legacyTable = "comments_legacy";
     let suffix = 1;
-
     while (
       db
         .prepare(
@@ -78,7 +88,6 @@ function openDatabase() {
     ) {
       legacyTable = `comments_legacy_${suffix++}`;
     }
-
     db.exec(`ALTER TABLE comments RENAME TO ${legacyTable}`);
   }
 
@@ -98,11 +107,8 @@ function openDatabase() {
       FOREIGN KEY (video_id) REFERENCES videos(video_id)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_comments_video_published
-      ON comments(video_id, published_at);
-
-    CREATE INDEX IF NOT EXISTS idx_comments_video_accepted
-      ON comments(video_id, accepted);
+    CREATE INDEX IF NOT EXISTS idx_comments_video_published ON comments(video_id, published_at);
+    CREATE INDEX IF NOT EXISTS idx_comments_video_accepted ON comments(video_id, accepted);
   `);
 
   migrateLegacyComments();
@@ -116,16 +122,12 @@ function migrateLegacyComments() {
     .all();
 
   for (const table of tables) {
-    const tableName = table.name;
-
-    // The name originates from sqlite_master, but quote it for SQL safety.
-    const safeName = `"${tableName.replaceAll('"', '""')}"`;
+    const safeName = `"${table.name.replaceAll('"', '""')}"`;
     const rows = db.prepare(`SELECT * FROM ${safeName}`).all();
 
     for (const row of rows) {
       const oldVideoId = String(row.video_id || "");
       const oldCommentId = String(row.id || row.comment_id || "");
-
       if (!oldVideoId || !oldCommentId) continue;
 
       const now = new Date().toISOString();
@@ -137,8 +139,7 @@ function migrateLegacyComments() {
 
       db.prepare(
         `
-        INSERT OR IGNORE INTO videos
-          (video_id, title, status, first_seen_at, updated_at)
+        INSERT OR IGNORE INTO videos (video_id, title, status, first_seen_at, updated_at)
         VALUES (?, '', 'live', ?, ?)
       `,
       ).run(oldVideoId, now, now);
@@ -146,8 +147,7 @@ function migrateLegacyComments() {
       db.prepare(
         `
         INSERT OR IGNORE INTO comments
-          (video_id, source, comment_id, author_key, author_name,
-           author_id, text, published_at, received_at, accepted)
+          (video_id, source, comment_id, author_key, author_name, author_id, text, published_at, received_at, accepted)
         VALUES (?, 'live', ?, ?, ?, '', ?, ?, ?, ?)
       `,
       ).run(
@@ -170,37 +170,26 @@ function migrateLegacyComments() {
 
 function parseVideoId(input) {
   const value = String(input || "").trim();
-
-  if (/^[a-zA-Z0-9_-]{11}$/.test(value)) {
-    return value;
-  }
+  if (/^[a-zA-Z0-9_-]{11}$/.test(value)) return value;
 
   try {
     const url = new URL(value);
     const host = url.hostname.replace(/^www\./, "");
 
-    if (host === "youtu.be") {
+    if (host === "youtu.be")
       return url.pathname.split("/").filter(Boolean)[0] || "";
-    }
 
-    if (
-      host === "youtube.com" ||
-      host === "m.youtube.com" ||
-      host === "music.youtube.com"
-    ) {
+    if (["youtube.com", "m.youtube.com", "music.youtube.com"].includes(host)) {
       const queryId = url.searchParams.get("v");
       if (queryId) return queryId;
 
       const parts = url.pathname.split("/").filter(Boolean);
-
-      if (["live", "shorts", "embed", "v"].includes(parts[0])) {
+      if (["live", "shorts", "embed", "v"].includes(parts[0]))
         return parts[1] || "";
-      }
     }
   } catch {
-    // A non-URL input is handled by the ID check above.
+    // Ei URL
   }
-
   return "";
 }
 
@@ -209,19 +198,12 @@ async function youtube(endpoint, params = {}) {
     const config = readConfig();
     apiKey = config.youtubeApiKey || "";
   }
-
   if (!apiKey) {
-    throw new Error(
-      "YouTube API -avain puuttuu. Tarkista config.json sovelluksen käyttäjädatakansiosta.",
-    );
+    throw new Error("YouTube API -avain puuttuu. Tarkista config.json.");
   }
 
   const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
-
-  for (const [key, value] of Object.entries({
-    ...params,
-    key: apiKey,
-  })) {
+  for (const [key, value] of Object.entries({ ...params, key: apiKey })) {
     if (value !== undefined && value !== null && value !== "") {
       url.searchParams.set(key, String(value));
     }
@@ -234,20 +216,17 @@ async function youtube(endpoint, params = {}) {
     const reason = data?.error?.errors?.[0]?.reason;
     const message =
       data?.error?.message || `YouTube API -virhe ${response.status}`;
-
     throw new Error(reason ? `${message} (${reason})` : message);
   }
-
   return data;
 }
 
 // ------------------------------------------------------------
-// 4. VIDEO AND COMMENT DATABASE HELPERS
+// 4. DATABASE HELPERS
 // ------------------------------------------------------------
 
 function saveVideo(id, title, status) {
   const now = new Date().toISOString();
-
   db.prepare(
     `
     INSERT INTO videos (video_id, title, status, first_seen_at, updated_at)
@@ -262,32 +241,28 @@ function saveVideo(id, title, status) {
 
 function getComments(id = videoId) {
   if (!id) return [];
-
   return db
     .prepare(
       `
-    SELECT
-      comment_id AS id,
-      author_key AS authorKey,
-      author_name AS name,
-      author_id AS authorId,
-      text,
-      published_at AS publishedAt,
-      received_at AS receivedAt,
-      accepted
-    FROM comments
-    WHERE video_id = ?
-    ORDER BY
-      CASE WHEN published_at = '' THEN 1 ELSE 0 END,
-      published_at ASC,
-      received_at ASC
-  `,
+      SELECT
+        comment_id AS id,
+        author_key AS authorKey,
+        author_name AS name,
+        author_id AS authorId,
+        text,
+        published_at AS publishedAt,
+        received_at AS receivedAt,
+        accepted
+      FROM comments
+      WHERE video_id = ?
+      ORDER BY
+        CASE WHEN published_at = '' THEN 1 ELSE 0 END,
+        published_at ASC,
+        received_at ASC
+    `,
     )
     .all(id)
-    .map((comment) => ({
-      ...comment,
-      accepted: Number(comment.accepted) === 1,
-    }));
+    .map((c) => ({ ...c, accepted: Number(c.accepted) === 1 }));
 }
 
 function saveComment({
@@ -298,22 +273,14 @@ function saveComment({
   text = "",
   publishedAt = "",
 }) {
-  if (!videoId || !id || !String(text).trim()) {
-    return false;
-  }
+  if (!videoId || !id || !String(text).trim()) return false;
 
   const commentId = String(id);
-
   const alreadyExists = db
     .prepare(
-      `
-    SELECT 1
-    FROM comments
-    WHERE video_id = ? AND source = ? AND comment_id = ?
-  `,
+      "SELECT 1 FROM comments WHERE video_id = ? AND source = ? AND comment_id = ?",
     )
     .get(videoId, source, commentId);
-
   if (alreadyExists) return false;
 
   const safeAuthorName = String(authorName || "Tuntematon");
@@ -322,11 +289,7 @@ function saveComment({
 
   const acceptedCount = db
     .prepare(
-      `
-    SELECT COUNT(*) AS count
-    FROM comments
-    WHERE video_id = ? AND accepted = 1 AND author_key = ?
-  `,
+      "SELECT COUNT(*) AS count FROM comments WHERE video_id = ? AND accepted = 1 AND author_key = ?",
     )
     .get(videoId, authorKey).count;
 
@@ -336,8 +299,7 @@ function saveComment({
   db.prepare(
     `
     INSERT OR IGNORE INTO comments
-      (video_id, source, comment_id, author_key, author_name,
-       author_id, text, published_at, received_at, accepted)
+      (video_id, source, comment_id, author_key, author_name, author_id, text, published_at, received_at, accepted)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
@@ -358,10 +320,8 @@ function saveComment({
 
 function snapshot() {
   const comments = getComments();
-  const acceptedComments = comments.filter((comment) => comment.accepted);
-  const acceptedAuthors = new Set(
-    acceptedComments.map((comment) => comment.authorKey),
-  );
+  const acceptedComments = comments.filter((c) => c.accepted);
+  const acceptedAuthors = new Set(acceptedComments.map((c) => c.authorKey));
 
   return {
     videoId,
@@ -385,7 +345,6 @@ function publishState() {
 
 function publishError(error) {
   const message = error instanceof Error ? error.message : String(error);
-
   if (win && !win.isDestroyed()) {
     win.webContents.send("state:error", message);
   }
@@ -394,7 +353,6 @@ function publishError(error) {
 function stopCurrentWork() {
   polling = false;
   normalFetchId++;
-
   if (pollTimer) {
     clearTimeout(pollTimer);
     pollTimer = null;
@@ -402,7 +360,7 @@ function stopCurrentWork() {
 }
 
 // ------------------------------------------------------------
-// 5. LIVE CHAT COLLECTION
+// 5. LIVE CHAT (30 s väli)
 // ------------------------------------------------------------
 
 async function pollLiveChat() {
@@ -414,12 +372,10 @@ async function pollLiveChat() {
       part: "snippet,authorDetails",
       maxResults: 200,
     };
-
-    if (nextPageToken) {
-      params.pageToken = nextPageToken;
-    }
+    if (nextPageToken) params.pageToken = nextPageToken;
 
     const result = await youtube("liveChat/messages", params);
+    estimatedQuotaUsed += 5;
 
     for (const item of result.items || []) {
       const snippet = item.snippet || {};
@@ -446,27 +402,35 @@ async function pollLiveChat() {
     nextPageToken = result.nextPageToken || "";
     publishState();
 
-    const delay = Math.max(1000, Number(result.pollingIntervalMillis || 5000));
+    // Ilmoita rendererille seuraava haku
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("poll:next", {
+        nextPollAt: Date.now() + LIVE_POLL_INTERVAL_MS,
+        intervalMs: LIVE_POLL_INTERVAL_MS,
+      });
+    }
+
+    console.log(
+      `[Live] Seuraava haku ${LIVE_POLL_INTERVAL_MS / 1000} s kuluttua | Kiintiöarvio: ~${estimatedQuotaUsed}`,
+    );
 
     if (polling) {
-      pollTimer = setTimeout(pollLiveChat, delay);
+      pollTimer = setTimeout(pollLiveChat, LIVE_POLL_INTERVAL_MS);
     }
   } catch (error) {
     publishError(error);
-
     if (polling) {
-      pollTimer = setTimeout(pollLiveChat, 15000);
+      pollTimer = setTimeout(pollLiveChat, 45000);
     }
   }
 }
 
 // ------------------------------------------------------------
-// 6. NORMAL VIDEO COMMENT COLLECTION
+// 6. NORMAALI VIDEO
 // ------------------------------------------------------------
 
 function saveNormalComment(item) {
   const snippet = item.snippet || {};
-
   saveComment({
     source: "normal",
     id: item.id,
@@ -480,12 +444,8 @@ function saveNormalComment(item) {
 async function fetchAllNormalComments(fetchId) {
   const replyParents = new Set();
   let pageToken = "";
-  let fetchedThreads = 0;
-  let expectedReplies = 0;
-  let fetchedReplies = 0;
 
   try {
-    // Fetch every page of top-level comments.
     do {
       if (!polling || fetchId !== normalFetchId) return;
 
@@ -495,27 +455,25 @@ async function fetchAllNormalComments(fetchId) {
         maxResults: 100,
         textFormat: "plainText",
       };
-
       if (pageToken) params.pageToken = pageToken;
 
       const result = await youtube("commentThreads", params);
+      estimatedQuotaUsed += 1;
 
       for (const thread of result.items || []) {
-        fetchedThreads++;
-
-        expectedReplies += Number(thread.snippet?.totalReplyCount || 0);
-
         const topLevel = thread.snippet?.topLevelComment;
+        if (!topLevel) continue;
 
-        if (topLevel) {
-          saveNormalComment(topLevel);
+        saveNormalComment(topLevel);
 
-          const replyCount = Number(thread.snippet?.totalReplyCount || 0);
-          if (replyCount > 0) replyParents.add(topLevel.id);
+        const inlineReplies = thread.replies?.comments || [];
+        for (const reply of inlineReplies) {
+          saveNormalComment(reply);
+        }
 
-          for (const reply of thread.replies?.comments || []) {
-            saveNormalComment(reply);
-          }
+        const totalReplies = Number(thread.snippet?.totalReplyCount || 0);
+        if (totalReplies > inlineReplies.length) {
+          replyParents.add(topLevel.id);
         }
       }
 
@@ -523,11 +481,8 @@ async function fetchAllNormalComments(fetchId) {
       publishState();
     } while (pageToken);
 
-    // Fetch replies for each top-level comment. The inline replies above
-    // are safe to process again because comment IDs are unique in SQLite.
     for (const parentId of replyParents) {
       let replyPageToken = "";
-
       do {
         if (!polling || fetchId !== normalFetchId) return;
 
@@ -537,13 +492,12 @@ async function fetchAllNormalComments(fetchId) {
           maxResults: 100,
           textFormat: "plainText",
         };
-
         if (replyPageToken) params.pageToken = replyPageToken;
 
         const result = await youtube("comments", params);
+        estimatedQuotaUsed += 1;
 
         for (const reply of result.items || []) {
-          fetchedReplies++;
           saveNormalComment(reply);
         }
 
@@ -551,12 +505,6 @@ async function fetchAllNormalComments(fetchId) {
         publishState();
       } while (replyPageToken);
     }
-    console.log("=== YOUTUBE-KOMMENTTIEN TARKISTUS ===");
-    console.log("Pääkommenttiketjuja:", fetchedThreads);
-    console.log("YouTuben ilmoittamat vastaukset:", expectedReplies);
-    console.log("API:sta haetut vastaukset:", fetchedReplies);
-    console.log("Tietokantaan tallennetut kommentit:", getComments().length);
-    console.log("====================================");
 
     if (fetchId === normalFetchId) {
       polling = false;
@@ -578,60 +526,37 @@ async function fetchAllNormalComments(fetchId) {
 ipcMain.handle("config:get", async () => {
   const config = readConfig();
   apiKey = config.youtubeApiKey || "";
-
-  return {
-    configured: Boolean(apiKey),
-  };
+  return { configured: Boolean(apiKey) };
 });
 
 ipcMain.handle("stream:load", async (_event, input) => {
   stopCurrentWork();
+  estimatedQuotaUsed = 0;
 
   const config = readConfig();
   apiKey = config.youtubeApiKey || "";
-
   if (!apiKey) {
-    throw new Error(
-      "YouTube API -avain puuttuu. Tarkista config.json sovelluksen käyttäjädatakansiosta.",
-    );
+    throw new Error("YouTube API -avain puuttuu. Tarkista config.json.");
   }
 
   const parsedId = parseVideoId(input);
-
-  if (!parsedId) {
+  if (!parsedId)
     throw new Error("YouTube-videon URL-osoitetta ei tunnistettu.");
-  }
 
   const videoResult = await youtube("videos", {
     part: "snippet,liveStreamingDetails",
     id: parsedId,
   });
+  estimatedQuotaUsed += 1;
 
   const video = videoResult.items?.[0];
-
-  if (!video) {
-    throw new Error(
-      "Videota ei löytynyt. Tarkista URL-osoite ja videon saatavuus.",
-    );
-  }
+  if (!video) throw new Error("Videota ei löytynyt.");
 
   videoId = video.id;
   streamTitle = video.snippet?.title || "Nimetön video";
-
   liveChatId = video.liveStreamingDetails?.activeLiveChatId || "";
 
-  // An active chat ID is the strongest indication of an active live chat.
-  // The broadcastContent value also identifies a live broadcast when chat
-  // is disabled or unavailable.
-  const broadcastState = video.snippet?.liveBroadcastContent || "none";
-
-  streamMode =
-    liveChatId && broadcastState === "live"
-      ? "live"
-      : liveChatId
-        ? "live"
-        : "normal";
-
+  streamMode = liveChatId ? "live" : "normal";
   saveVideo(videoId, streamTitle, streamMode);
 
   nextPageToken = "";
@@ -643,17 +568,19 @@ ipcMain.handle("stream:load", async (_event, input) => {
       polling = false;
       publishState();
       throw new Error(
-        "Video tunnistettiin live-lähetykseksi, mutta aktiivista live-chatia ei saatu. Chat voi olla pois käytöstä tai lähetys ei ole vielä alkanut.",
+        "Live-lähetys tunnistettu, mutta aktiivista chatia ei saatu.",
       );
     }
-
+    // Ilmoita heti ensimmäinen laskuri
+    if (win && !win.isDestroyed()) {
+      win.webContents.send("poll:next", {
+        nextPollAt: Date.now() + 1000, // ensimmäinen haku melkein heti
+        intervalMs: LIVE_POLL_INTERVAL_MS,
+      });
+    }
     pollLiveChat();
   } else {
-    const fetchId = normalFetchId;
-    fetchAllNormalComments(fetchId);
-    let fetchedThreads = 0;
-    let expectedReplies = 0;
-    let fetchedReplies = 0;
+    fetchAllNormalComments(normalFetchId);
   }
 
   return snapshot();
@@ -668,7 +595,7 @@ ipcMain.handle("stream:stop", async () => {
 ipcMain.handle("stream:state", async () => snapshot());
 
 // ------------------------------------------------------------
-// 8. ELECTRON WINDOW
+// 8. WINDOW
 // ------------------------------------------------------------
 
 function createWindow() {
@@ -697,15 +624,12 @@ app.whenReady().then(() => {
   createWindow();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on("before-quit", () => {
   stopCurrentWork();
-
   if (db) {
     db.close();
     db = null;
@@ -713,7 +637,5 @@ app.on("before-quit", () => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  if (process.platform !== "darwin") app.quit();
 });

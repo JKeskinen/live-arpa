@@ -1,3 +1,10 @@
+/**
+ * Sovelluksen sisääntulopiste
+ * ---------------------------
+ * Renderöi App-komponentin Reactin StrictMode-tilassa.
+ * Ei sisällä liiketoimintalogiikkaa.
+ */
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
