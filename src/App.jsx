@@ -7,6 +7,7 @@
  * - Ei tee suoria YouTube API -kutsuja.
  * - Kaikki data tulee Electron main-prosessista (window.raffleAPI).
  * - Live-tilassa näytetään laskuri seuraavaan kommenttihakuun (30 s väli).
+ * - Arvonnan aikana elokuvamainen countdown (5→0) päälle.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -53,6 +54,9 @@ export default function App() {
   const [displayed, setDisplayed] = useState(null);
   const [configNotice, setConfigNotice] = useState("");
 
+  // Elokuvamainen countdown (5…0)
+  const [drawCountdown, setDrawCountdown] = useState(null);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     try {
@@ -64,17 +68,30 @@ export default function App() {
     }
   });
 
-  // Laskuri seuraavaan live-hakuun (sekunteina)
+  // Isännän nimi – ei voi voittaa arvontaa
+  const [hostName, setHostName] = useState(() => {
+    try {
+      return localStorage.getItem("raffle-host") || "prodiscus_official";
+    } catch {
+      return "prodiscus_official";
+    }
+  });
+
+  // Laskuri seuraavaan live-hakuun
   const [nextPollIn, setNextPollIn] = useState(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try {
       localStorage.setItem("raffle-theme", theme);
-    } catch {
-      // Teema vaihtuu myös tallennuksen epäonnistuessa
-    }
+    } catch {}
   }, [theme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("raffle-host", hostName);
+    } catch {}
+  }, [hostName]);
 
   const [branding, setBranding] = useState(() => {
     try {
@@ -129,13 +146,17 @@ export default function App() {
   const rollTimer = useRef(null);
   const winnerTimer = useRef(null);
 
-  // Vain hyväksytyt kommentit osallistuvat arvontaan (max 3 / käyttäjä)
-  const entries = useMemo(
-    () => state.comments.filter((comment) => comment.accepted),
-    [state.comments],
-  );
+  // Arvontaan hyväksytyt kommentit (isäntä suodatettu pois)
+  const entries = useMemo(() => {
+    const host = hostName.trim().toLocaleLowerCase("fi-FI");
+    return state.comments.filter((comment) => {
+      if (!comment.accepted) return false;
+      if (!host) return true;
+      const name = (comment.name || "").trim().toLocaleLowerCase("fi-FI");
+      return name !== host;
+    });
+  }, [state.comments, hostName]);
 
-  // Viimeisimmät 20 kommenttia sivupaneeliin
   const latestComments = useMemo(
     () => [...state.comments].reverse().slice(0, 20),
     [state.comments],
@@ -144,7 +165,6 @@ export default function App() {
   const isLive = state.streamMode === "live";
   const isNormal = state.streamMode === "normal";
 
-  // Alustus: kuuntele main-prosessin viestejä
   useEffect(() => {
     if (!window.raffleAPI) {
       setError(
@@ -167,11 +187,9 @@ export default function App() {
     const offUpdate = window.raffleAPI.onUpdate((data) => setState(data));
     const offError = window.raffleAPI.onError((message) => setError(message));
 
-    // Laskuri seuraavaan live-hakuun
     let countdownInterval = null;
     const offPoll = window.raffleAPI.onPollNext?.(({ nextPollAt }) => {
       if (countdownInterval) clearInterval(countdownInterval);
-
       const tick = () => {
         const remaining = Math.max(
           0,
@@ -179,7 +197,6 @@ export default function App() {
         );
         setNextPollIn(remaining);
       };
-
       tick();
       countdownInterval = setInterval(tick, 1000);
     });
@@ -201,14 +218,12 @@ export default function App() {
     };
   }, []);
 
-  // Arvonnan pyöritys
+  // Pyörivä arvonta
   useEffect(() => {
     if (!rolling || entries.length === 0) return undefined;
-
     rollTimer.current = setInterval(() => {
       setDisplayed(entries[Math.floor(Math.random() * entries.length)]);
     }, 90);
-
     return () => clearInterval(rollTimer.current);
   }, [rolling, entries]);
 
@@ -220,14 +235,13 @@ export default function App() {
       );
       return;
     }
-
     setBusy(true);
     setError("");
     setWinner(null);
     setDisplayed(null);
     setRolling(false);
     setNextPollIn(null);
-
+    setDrawCountdown(null);
     try {
       const data = await window.raffleAPI.loadStream(url.trim());
       setState(data);
@@ -241,6 +255,7 @@ export default function App() {
   async function stopStream() {
     setRolling(false);
     setNextPollIn(null);
+    setDrawCountdown(null);
     try {
       setState(await window.raffleAPI.stopStream());
     } catch (err) {
@@ -255,10 +270,15 @@ export default function App() {
     }
     setError("");
     setWinner(null);
+    setDrawCountdown(null);
     setRolling(true);
     setDisplayed(entries[Math.floor(Math.random() * entries.length)]);
   }
 
+  /**
+   * Elokuvamainen countdown 5 → 0.
+   * Kommentit ja nimet pysyvät näkyvissä taustalla.
+   */
   function drawWinner() {
     if (!rolling || !entries.length) {
       if (!rolling) startRaffle();
@@ -271,20 +291,34 @@ export default function App() {
     const chosen = entries[Math.floor(Math.random() * entries.length)];
     const started = Date.now();
 
+    // Aloita suoraan 5:stä
+    setDrawCountdown(5);
+
     function slowDown() {
       const elapsed = Date.now() - started;
-      if (elapsed >= 5000) {
+
+      // 5 → 4 → 3 → 2 → 1 → 0 (yhteensä ~6 sekuntia)
+      const step = Math.floor(elapsed / 1000);
+      const current = Math.max(0, 5 - step);
+
+      setDrawCountdown(current);
+
+      if (elapsed >= 6000) {
         setDisplayed(chosen);
         setWinner(chosen);
         setRolling(false);
+        setDrawCountdown(null);
         return;
       }
+
       setDisplayed(entries[Math.floor(Math.random() * entries.length)]);
+
       winnerTimer.current = setTimeout(
         slowDown,
-        70 + Math.pow(elapsed / 5000, 2) * 480,
+        80 + Math.pow(elapsed / 6000, 2) * 500,
       );
     }
+
     slowDown();
   }
 
@@ -299,14 +333,13 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      {/* Brändäys + asetukset */}
       <section className="branding-panel panel">
         <div className="branding-preview">
           {branding.image ? (
             <img
               className={`brand-custom-image animation-${branding.animation}`}
               src={branding.image}
-              alt="Valittu Prodiscus-arvontakoneen tunnus"
+              alt="Valittu tunnus"
             />
           ) : (
             <div className="prodiscus-wordmark">
@@ -315,12 +348,10 @@ export default function App() {
             </div>
           )}
         </div>
-
         <div className="branding-copy">
           <strong>PRODISCUS</strong>
           <span>RAFFLERI</span>
         </div>
-
         <button
           type="button"
           className="settings-button"
@@ -350,7 +381,6 @@ export default function App() {
               <X size={18} />
             </button>
           </div>
-
           <div className="settings-grid">
             <div className="setting-item">
               <label htmlFor="branding-image">Oma tunnuskuva</label>
@@ -371,7 +401,6 @@ export default function App() {
                 </button>
               )}
             </div>
-
             <div className="setting-item">
               <label htmlFor="branding-animation">Kuvan animaatio</label>
               <select
@@ -386,7 +415,6 @@ export default function App() {
               </select>
               <small>Valinta näkyy heti kuvan esikatselussa.</small>
             </div>
-
             <div className="setting-item">
               <label htmlFor="app-theme">Väriteema</label>
               <select
@@ -399,11 +427,24 @@ export default function App() {
               </select>
               <small>Teema vaihtuu heti ja tallennetaan automaattisesti.</small>
             </div>
+            <div className="setting-item">
+              <label htmlFor="host-name">Isännän käyttäjänimi</label>
+              <input
+                id="host-name"
+                type="text"
+                value={hostName}
+                onChange={(e) => setHostName(e.target.value)}
+                placeholder="prodiscus_official"
+              />
+              <small>
+                Tätä nimeä ei hyväksytä arvonnan voittajaksi. Vertailu on
+                kirjainkoosta riippumaton.
+              </small>
+            </div>
           </div>
         </section>
       )}
 
-      {/* Yläpalkki */}
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
@@ -416,7 +457,6 @@ export default function App() {
             <div className="brand-sub">YOUTUBE LIVE GIVEAWAY STUDIO</div>
           </div>
         </div>
-
         <div className="live-state">
           <span
             className={isLive && state.polling ? "pulse-dot" : "status-dot"}
@@ -433,13 +473,11 @@ export default function App() {
         </div>
       </header>
 
-      {/* URL-syöttö */}
       <section className="url-panel panel">
         <div className="section-label">
           <Link2 size={15} />
           LÄHETYKSEN OSOITE
         </div>
-
         <form className="url-form" onSubmit={loadStream}>
           <input
             value={url}
@@ -456,7 +494,6 @@ export default function App() {
             {busy ? "LADATAAN…" : "LATAA VIDEO"}
           </button>
         </form>
-
         {state.videoId && (
           <div className="stream-row">
             <div className="youtube-icon">
@@ -481,7 +518,6 @@ export default function App() {
             )}
           </div>
         )}
-
         {state.videoId && state.polling && (
           <div style={{ marginTop: 12, textAlign: "right" }}>
             <button type="button" className="copy-btn" onClick={stopStream}>
@@ -489,8 +525,6 @@ export default function App() {
             </button>
           </div>
         )}
-
-        {/* Laskuri seuraavaan hakuun */}
         {isLive && state.polling && nextPollIn !== null && (
           <div
             className="poll-countdown"
@@ -507,7 +541,6 @@ export default function App() {
           {configNotice}
         </div>
       )}
-
       {error && (
         <div className="error-banner">
           <span>{error}</span>
@@ -517,7 +550,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Tilastot */}
       <section className="stats-grid">
         <Stat
           icon={<MessageSquare size={18} />}
@@ -549,7 +581,6 @@ export default function App() {
         </div>
       </section>
 
-      {/* Arvonta + kommentit */}
       <section className="content-grid">
         <div className="raffle-panel panel">
           <div className="panel-heading">
@@ -584,35 +615,46 @@ export default function App() {
                     ]?.name
                   : "ODOTTAA"}
               </div>
+
               <div className="reel-center">
                 <div
-                  className={`reel-avatar ${rolling && !winner ? "logo-rolling" : ""}`}
+                  className={`reel-avatar ${rolling && !winner && drawCountdown === null ? "logo-rolling" : ""}`}
                 >
                   {winner ? (
                     <Trophy size={29} />
                   ) : branding.image ? (
                     <img
                       src={branding.image}
-                      alt="Prodiscus-logo"
+                      alt="Logo"
                       className="reel-brand-logo"
                     />
                   ) : (
                     <span className="reel-brand-letter">P</span>
                   )}
                 </div>
+
                 <div className="reel-name">
                   {displayed?.name || "VALMIS ARVONTAAN"}
                 </div>
                 <div className="reel-comment">
                   {displayed?.text || "Lataa video aloittaaksesi"}
                 </div>
+
                 {winner && (
                   <div className="winner-label">
                     <Trophy size={14} />
                     VOITTAJA
                   </div>
                 )}
+
+                {/* Elokuvamainen countdown päälle */}
+                {drawCountdown !== null && (
+                  <div className="cinematic-countdown" key={drawCountdown}>
+                    {drawCountdown}
+                  </div>
+                )}
               </div>
+
               <div className="reel-side right">
                 {entries.length
                   ? entries[
@@ -649,7 +691,7 @@ export default function App() {
             <span className="hint-dot" />
             Rulla pyörii jatkuvasti
             <span className="hint-separator">•</span>
-            Voittajan hidastus 5 sekuntia
+            Voittajan hidastus 6 sekuntia
           </div>
 
           {winner && (
@@ -680,7 +722,6 @@ export default function App() {
             </div>
             <span className="comment-count">{state.totalComments}</span>
           </div>
-
           <div className="comment-list">
             {latestComments.map((comment, index) => (
               <div className="comment-item" key={`${comment.id}-${index}`}>
@@ -693,15 +734,9 @@ export default function App() {
                     <time>{time(comment.publishedAt)}</time>
                   </div>
                   <div className="comment-text">{comment.text}</div>
-                  {!comment.accepted && (
-                    <div style={{ marginTop: 5, fontSize: 11, opacity: 0.65 }}>
-                      Ei mukana arvonnassa (käyttäjän 3 kommenttia täynnä)
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
-
             {!latestComments.length && (
               <div className="empty-comments">
                 <MessageSquare size={28} />
@@ -710,7 +745,6 @@ export default function App() {
               </div>
             )}
           </div>
-
           <div className="rules-card">
             <div className="rules-icon">
               <ShieldCheck size={17} />
