@@ -32,7 +32,7 @@ npm -v
 
 ```bash
 # Korvaa alla oleva osoite oman repon osoitteella
-git clone https://github.com/KÄYTTÄJÄNIMI/prodiscus-raffleri.git
+git clone https://github.com/JKeskinen/live-arpa
 cd prodiscus-raffleri
 ```
 
