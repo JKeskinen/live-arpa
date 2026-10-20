@@ -1,18 +1,14 @@
 /**
- * Sovelluksen sisääntulopiste
- * ---------------------------
- * Renderöi App-komponentin Reactin StrictMode-tilassa.
- * Ei sisällä liiketoimintalogiikkaa.
+ * React-sovelluksen entry point
  */
 
-import React from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.jsx";
-import "./style.css";
-import "./App.css";
+import App from "./App";
+import "./App.css"; // tai App.css – vaihda nimeä tarvittaessa
 
 createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
+  <StrictMode>
     <App />
-  </React.StrictMode>,
+  </StrictMode>,
 );

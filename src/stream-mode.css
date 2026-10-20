@@ -1,0 +1,50 @@
+/* =========================================
+   STREAM MODE
+   Lisää tämä App.css-tiedoston loppuun
+   ========================================= */
+
+.app-shell.stream-mode .url-panel,
+.app-shell.stream-mode .stats-grid,
+.app-shell.stream-mode footer,
+.app-shell.stream-mode .branding-panel {
+  display: none;
+}
+
+.app-shell.stream-mode {
+  padding: 8px 12px;
+}
+
+.app-shell.stream-mode .topbar {
+  height: 48px;
+  margin-bottom: 8px;
+}
+
+.app-shell.stream-mode .content-grid {
+  grid-template-columns: 1fr 260px;
+  gap: 8px;
+}
+
+.app-shell.stream-mode .raffle-panel {
+  padding: 12px;
+}
+
+.app-shell.stream-mode .reel-stage {
+  height: 200px;
+  margin: 8px 0;
+}
+
+.app-shell.stream-mode .comments-panel {
+  padding: 10px;
+}
+
+.app-shell.stream-mode .comment-list {
+  max-height: 260px;
+}
+
+.app-shell.stream-mode .panel-heading h1 {
+  font-size: 15px;
+}
+
+.app-shell.stream-mode .reel-name {
+  font-size: 15px;
+}
