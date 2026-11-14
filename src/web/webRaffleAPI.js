@@ -1,8 +1,8 @@
 /**
- * webRaffleAPI – selainversion "main-prosessi"
+ * webRaffleAPI – kommenttien haku ja tallennus
  * --------------------------------------------
- * Sama rajapinta kuin Electronin preload-skriptin window.raffleAPI,
- * joten käyttöliittymä toimii molemmissa samalla koodilla.
+ * Hakee kommentit YouTubesta ja Twitchistä ja tallentaa ne selaimen
+ * IndexedDB:hen. Käyttöliittymä käyttää tätä useRaffleAPI-hookin kautta.
  *
  * Lähteet (YouTube ja Twitch voivat olla käynnissä yhtä aikaa):
  * - Twitch-kanava → chat luetaan reaaliajassa (ei API-avainta, ei kiintiötä).
@@ -654,7 +654,7 @@ async function fetchAllNormalComments(session) {
 }
 
 // ------------------------------------------------------------
-// Julkinen rajapinta (sama kuin window.raffleAPI)
+// Julkinen rajapinta
 // ------------------------------------------------------------
 
 /**
@@ -773,9 +773,6 @@ async function importData(data) {
 }
 
 export const webRaffleAPI = {
-  isWeb: true,
-  supportsChannels: true,
-  supportsTwitch: true,
   getConfig: async () => ({ configured: Boolean(getApiKey()) }),
   setApiKey: async (key) => setApiKey(key),
   loadStream,

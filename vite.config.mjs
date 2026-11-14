@@ -3,8 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  // Suhteelliset polut toimivat sekä Electronissa (file://) että
-  // Firebase Hostingissa (sivuston juuri).
+  // Suhteelliset polut: toimii Firebase Hostingissa ja esikatselussa.
   base: "./",
   server: {
     host: "127.0.0.1",

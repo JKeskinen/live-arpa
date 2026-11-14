@@ -102,15 +102,12 @@ export default function App() {
     saveApiKey,
     exportData,
     importData,
-    isWeb,
-    supportsChannels,
-    supportsTwitch,
     configLoaded,
   } = useRaffleAPI(setError);
 
   useEffect(() => writeStored("raffle-source", url), [url]);
   useEffect(() => writeStored("raffle-twitch-source", twitchUrl), [twitchUrl]);
-  const hasSource = Boolean(url.trim() || (supportsTwitch && twitchUrl.trim()));
+  const hasSource = Boolean(url.trim() || twitchUrl.trim());
   useEffect(() => writeStored("raffle-autostart", String(autoStart)), [autoStart]);
 
   // Automaattinen haku kerran sivun avautuessa (asetuksista päälle).
@@ -183,7 +180,7 @@ export default function App() {
     setDisplayed(null);
     setRolling(false);
     setDrawCountdown(null);
-    await loadStream({ youtube: url, twitch: supportsTwitch ? twitchUrl : "" });
+    await loadStream({ youtube: url, twitch: twitchUrl });
   }
 
   async function handleStop() {
@@ -335,11 +332,8 @@ Viestiin: nimi, osoite, puhelinnumero`;
           setUrl={setUrl}
           twitchUrl={twitchUrl}
           setTwitchUrl={setTwitchUrl}
-          supportsTwitch={supportsTwitch}
           onLoad={handleLoad}
           busy={busy}
-          isWeb={isWeb}
-          supportsChannels={supportsChannels}
           autoStart={autoStart}
           setAutoStart={setAutoStart}
           apiKeyConfigured={apiKeyConfigured}
@@ -355,11 +349,9 @@ Viestiin: nimi, osoite, puhelinnumero`;
         setUrl={setUrl}
         twitchUrl={twitchUrl}
         setTwitchUrl={setTwitchUrl}
-        supportsTwitch={supportsTwitch}
         state={state}
         busy={busy}
         nextPollIn={nextPollIn}
-        supportsChannels={supportsChannels}
         onLoad={handleLoad}
         onStop={handleStop}
       />
@@ -414,7 +406,7 @@ Viestiin: nimi, osoite, puhelinnumero`;
 
       <footer>
         <span>
-          LIVE RAFFLERI <b>•</b> {isWeb ? "WEB" : "DESKTOP STUDIO"}
+          LIVE RAFFLERI <b>•</b> YOUTUBE + TWITCH
         </span>
         <span>
           <span className="footer-dot" />

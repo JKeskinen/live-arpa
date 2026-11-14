@@ -1,9 +1,9 @@
 /**
  * raffleCore – yhteinen arvontalogiikka
  * -------------------------------------
- * Käytetään sekä Electronin main-prosessissa (electron/main.cjs)
- * että selainversiossa (src/web/webRaffleAPI.js), jotta säännöt
- * ovat molemmissa täsmälleen samat.
+ * Arvonnan säännöt ja YouTube-rajapinnan apufunktiot. Käytetään
+ * kommenttien haussa (src/web/webRaffleAPI.js) ja tallennuksessa
+ * (src/web/db.js).
  *
  * Kiintiö (oletus 10 000 yksikköä / päivä):
  * - liveChat/messages = 5 yksikköä / kutsu
@@ -204,7 +204,7 @@ export function isAccepted(acceptedCountForAuthor) {
   return acceptedCountForAuthor < MAX_ACCEPTED_PER_AUTHOR;
 }
 
-/** Järjestää kommentit julkaisuajan mukaan (sama kuin SQLite-kysely). */
+/** Järjestää kommentit julkaisuajan mukaan (tyhjä aika viimeiseksi). */
 export function sortComments(comments) {
   return [...comments].sort((a, b) => {
     const aEmpty = a.publishedAt ? 0 : 1;

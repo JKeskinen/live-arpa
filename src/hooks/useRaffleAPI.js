@@ -1,22 +1,14 @@
 /**
  * useRaffleAPI – yhteys kommenttien hakuun
  * ----------------------------------------
- * Electronissa käytetään preload-skriptin window.raffleAPI:a (main-prosessi
- * ja SQLite). Selaimessa käytetään webRaffleAPI:a (IndexedDB), jolla on
- * sama rajapinta.
+ * React-hook webRaffleAPI:n päälle: tila, virheet, ilmoitukset, API-avain
+ * ja varmuuskopio käyttöliittymää varten.
  */
 
 import { useEffect, useState } from "react";
 import { webRaffleAPI } from "../web/webRaffleAPI";
 
-const api =
-  typeof window !== "undefined" && window.raffleAPI
-    ? window.raffleAPI
-    : webRaffleAPI;
-
-export const isWeb = Boolean(api.isWeb);
-export const supportsChannels = Boolean(api.supportsChannels);
-export const supportsTwitch = Boolean(api.supportsTwitch);
+const api = webRaffleAPI;
 
 const empty = {
   videoId: "",
@@ -32,12 +24,7 @@ const empty = {
 
 function missingKeyNotice(config) {
   if (config.configured) return "";
-  if (isWeb) {
-    return "YouTube API -avain puuttuu. Lisää se asetuksista (rataskuvake oikealla ylhäällä).";
-  }
-  return config.configPath
-    ? `YouTube API -avain puuttuu. Lisää se tiedostoon ${config.configPath} ja käynnistä ohjelma uudelleen.`
-    : "YouTube API -avain puuttuu. Katso ohjeet README.md-tiedostosta.";
+  return "YouTube API -avain puuttuu. Lisää se asetuksista (rataskuvake oikealla ylhäällä). Pelkkä Twitch toimii ilman avainta.";
 }
 
 export function useRaffleAPI(setError) {
@@ -93,17 +80,16 @@ export function useRaffleAPI(setError) {
     };
   }, [setError]);
 
-  /** sources = { youtube, twitch }. Electron tukee vain YouTubea. */
+  /** sources = { youtube, twitch } – kumpi tahansa voi olla tyhjä. */
   async function loadStream(sources) {
     setBusy(true);
     setError("");
     setNextPollIn(null);
     try {
-      const data = await api.loadStream(
-        supportsTwitch
-          ? { youtube: sources.youtube.trim(), twitch: sources.twitch.trim() }
-          : sources.youtube.trim(),
-      );
+      const data = await api.loadStream({
+        youtube: sources.youtube.trim(),
+        twitch: sources.twitch.trim(),
+      });
       setState(data);
     } catch (err) {
       setError(err.message || "Videota ei voitu ladata.");
@@ -189,9 +175,6 @@ export function useRaffleAPI(setError) {
     saveApiKey,
     exportData,
     importData,
-    isWeb,
-    supportsChannels,
-    supportsTwitch,
     configLoaded,
   };
 }

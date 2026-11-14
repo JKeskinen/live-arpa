@@ -1,8 +1,7 @@
 /**
  * IndexedDB-tallennus selainversiolle
  * -----------------------------------
- * Vastaa Electron-version SQLite-tietokantaa. Data säilyy vain tässä
- * selaimessa tällä laitteella.
+ * Data säilyy vain tässä selaimessa tällä laitteella.
  *
  * Storet:
  * - videos:   { videoId, title, status, firstSeenAt, updatedAt }

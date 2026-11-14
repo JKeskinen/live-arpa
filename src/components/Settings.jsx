@@ -344,11 +344,8 @@ export default function Settings({
   setUrl,
   twitchUrl,
   setTwitchUrl,
-  supportsTwitch,
   onLoad,
   busy,
-  isWeb,
-  supportsChannels,
   autoStart,
   setAutoStart,
   apiKeyConfigured,
@@ -357,7 +354,7 @@ export default function Settings({
   onImport,
   onClose,
 }) {
-  const apiKeySection = isWeb && (
+  const apiKeySection = (
     <ApiKeySection configured={apiKeyConfigured} onSave={onSaveApiKey} />
   );
 
@@ -388,86 +385,71 @@ export default function Settings({
         <Section
           icon={Radio}
           title="Lähetys"
-          description={
-            supportsTwitch
-              ? "Mistä kommentit haetaan. YouTube ja Twitch voivat olla käytössä yhtä aikaa – kommentit menevät samaan arvontaan."
-              : "Mistä kommentit haetaan."
-          }
+          description="Mistä kommentit haetaan. YouTube ja Twitch voivat olla käytössä yhtä aikaa – kommentit menevät samaan arvontaan."
           wide
         >
           <form onSubmit={onLoad} className="source-form">
             <div className="source-fields">
               <div className="setting-item">
                 <label htmlFor="video-url">
-                  {supportsChannels ? "YouTube-kanava tai video" : "YouTube-videon osoite"}
+                  YouTube-kanava tai video
                 </label>
                 <input
                   id="video-url"
                   type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder={
-                    supportsChannels
-                      ? "Esim. @prodiscus_official tai videon osoite"
-                      : "Liitä YouTube-videon tai livelähetyksen osoite"
-                  }
+                  placeholder="Esim. @prodiscus_official tai videon osoite"
                 />
                 <small>
-                  {supportsChannels
-                    ? "Kanavalta etsitään käynnissä oleva live kerran, kun painat LATAA. Vaatii API-avaimen."
-                    : "Liitä videon tai livelähetyksen osoite."}
+                  Kanavalta etsitään käynnissä oleva live kerran, kun painat
+                  LATAA. Vaatii API-avaimen.
                 </small>
               </div>
 
-              {supportsTwitch && (
-                <div className="setting-item">
-                  <label htmlFor="twitch-url">Twitch-kanava</label>
-                  <input
-                    id="twitch-url"
-                    type="text"
-                    value={twitchUrl}
-                    onChange={(e) => setTwitchUrl(e.target.value)}
-                    placeholder="Esim. twitch.tv/kuidemaen"
-                  />
-                  <small>
-                    Chat luetaan reaaliajassa, ei tarvitse API-avainta. Vain
-                    sivun ollessa auki kirjoitetut viestit tallentuvat.
-                  </small>
-                </div>
-              )}
+              <div className="setting-item">
+                <label htmlFor="twitch-url">Twitch-kanava</label>
+                <input
+                  id="twitch-url"
+                  type="text"
+                  value={twitchUrl}
+                  onChange={(e) => setTwitchUrl(e.target.value)}
+                  placeholder="Esim. twitch.tv/kuidemaen"
+                />
+                <small>
+                  Chat luetaan reaaliajassa, ei tarvitse API-avainta. Vain
+                  sivun ollessa auki kirjoitetut viestit tallentuvat.
+                </small>
+              </div>
             </div>
             <button
               type="submit"
               className="primary-btn"
-              disabled={busy || !(url.trim() || (supportsTwitch && twitchUrl.trim()))}
+              disabled={busy || !(url.trim() || twitchUrl.trim())}
             >
               <Radio size={14} />
               {busy ? "LADATAAN…" : "LATAA"}
             </button>
           </form>
-          {supportsTwitch && (
-            <small className="setting-help">
-              Jätä kenttä tyhjäksi, jos et käytä kyseistä palvelua. Sama 3
-              kommenttia per henkilö pätee kummassakin palvelussa.
-            </small>
-          )}
+          <small className="setting-help">
+            Jätä kenttä tyhjäksi, jos et käytä kyseistä palvelua. Sama 3
+            kommenttia per henkilö pätee kummassakin palvelussa.
+          </small>
 
-          {supportsChannels && (
-            <label className="setting-check">
-              <input
-                type="checkbox"
-                checked={autoStart}
-                onChange={(e) => setAutoStart(e.target.checked)}
-              />
-              <span>
-                <strong>Hae automaattisesti, kun sivu avataan</strong>
-                <small>
-                  Kun sivu avataan livelähetyksen alettua, kommenttien haku
-                  käynnistyy ilman painalluksia.
-                </small>
-              </span>
-            </label>
-          )}
+          <label className="setting-check">
+            <input
+              type="checkbox"
+              checked={autoStart}
+              onChange={(e) => setAutoStart(e.target.checked)}
+            />
+            <span>
+              <strong>Hae automaattisesti, kun sivu avataan</strong>
+              <small>
+                Kun sivu avataan livelähetyksen alettua, kommenttien haku
+                käynnistyy ilman painalluksia.
+              </small>
+            </span>
+          </label>
         </Section>
 
         {/* 2. Näkymä */}
@@ -499,12 +481,10 @@ export default function Settings({
           </div>
           <ul className="setting-rules">
             <li>
-              Enintään 3 kommenttia per henkilö osallistuu (= 3 arpaa)
-              {supportsTwitch ? " – YouTubessa ja Twitchissä erikseen" : ""}.
+              Enintään 3 kommenttia per henkilö osallistuu (= 3 arpaa) –
+              YouTubessa ja Twitchissä erikseen.
             </li>
-            {supportsTwitch && (
-              <li>Twitch-kanavan omistajan omat viestit eivät osallistu.</li>
-            )}
+            <li>Twitch-kanavan omistajan omat viestit eivät osallistu.</li>
             <li>Sama henkilö voi voittaa vain kerran saman videon arvonnoissa.</li>
           </ul>
         </Section>
@@ -564,7 +544,7 @@ export default function Settings({
 
         {apiKeyConfigured && apiKeySection}
 
-        {isWeb && <BackupSection onExport={onExport} onImport={onImport} />}
+        <BackupSection onExport={onExport} onImport={onImport} />
       </div>
     </section>
   );

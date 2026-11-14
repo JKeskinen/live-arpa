@@ -1,14 +1,12 @@
 # Raffleri – YouTube- ja Twitch-arvontakone
 
 Raffleri kerää livelähetyksen kommentit YouTubesta ja Twitchistä ja arpoo niistä voittajat.
-Sovelluksesta on kaksi versiota, joissa on sama käyttöliittymä ja samat säännöt:
+Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 
-| | Web-versio (suositeltu) | Työpöytäsovellus (Windows, Electron) |
-|---|---|---|
-| Osoite / asennus | https://raffleri-c6128.web.app | Windows-asennusohjelma |
-| Lähteet | YouTube ja Twitch yhtä aikaa | YouTube |
-| YouTube API -avain | Syötetään asetuksiin, tallentuu vain selaimeen | `config.json` käyttäjäkansiossa |
-| Kommenttien tallennus | Selaimen IndexedDB tällä laitteella | SQLite-tiedosto tällä laitteella |
+**https://raffleri-c6128.web.app**
+
+- YouTube API -avain syötetään asetuksiin ja tallentuu vain käyttäjän selaimeen.
+- Kommentit tallentuvat selaimen IndexedDB:hen sillä laitteella, jolla arvonta pidetään.
 
 ## Ominaisuudet
 
@@ -29,9 +27,9 @@ Sovelluksesta on kaksi versiota, joissa on sama käyttöliittymä ja samat sää
 - Voittaja arvotaan tasaisesti hyväksyttyjen kommenttien joukosta.
 - Sama henkilö voi voittaa vain kerran saman arvonnan aikana. Voittajalistan voi tyhjentää asetuksista.
 - Isännän käyttäjänimi (asetuksissa) ja Twitch-kanavan omistaja eivät osallistu.
-- Säännöt ovat tiedostossa [shared/raffleCore.mjs](shared/raffleCore.mjs), jota molemmat versiot käyttävät.
+- Säännöt ovat tiedostossa [shared/raffleCore.mjs](shared/raffleCore.mjs).
 
-## Käyttö (web-versio)
+## Käyttö
 
 1. Avaa https://raffleri-c6128.web.app
 2. Paina oikean yläkulman rataskuvaketta ⚙️ ja liitä YouTube API -avain kohtaan **YouTube API -avain** (ks. alla). Pelkkä Twitch toimii ilman avainta.
@@ -88,20 +86,17 @@ Arvonta OBS-lähetykseen:
 2. Ota käyttöön **YouTube Data API v3** (APIs & Services → Library).
 3. Luo avain: APIs & Services → Credentials → Create credentials → API key.
 4. **API restrictions** → Restrict key → YouTube Data API v3.
+5. **Application restrictions** → Websites, ja lisää
+   `https://raffleri-c6128.web.app/*`, `https://raffleri-c6128.firebaseapp.com/*`,
+   `http://localhost:5173/*` ja `http://127.0.0.1:5173/*`.
 
-Käytä web-versiolle ja työpöytäsovellukselle **eri avaimia**:
-- **Web-avain:** Application restrictions → Websites, ja lisää
-  `https://raffleri-c6128.web.app/*`, `https://raffleri-c6128.firebaseapp.com/*`,
-  `http://localhost:5173/*` ja `http://127.0.0.1:5173/*`.
-- **Työpöytäavain:** ei osoiterajausta (sovellus ei lähetä selaimen osoitetta).
-
-Älä julkaise avainta GitHubissa. Web-versiossa avain ei ole julkaistussa sivussa, vaan vain käyttäjän selaimessa.
+Älä julkaise avainta GitHubissa. Avain ei ole julkaistussa sivussa, vaan vain käyttäjän selaimessa.
 
 ## Kehitys ja julkaisu
 
 ```powershell
 npm install
-npm run dev:web        # selainversio osoitteessa http://127.0.0.1:5173
+npm run dev            # kehityspalvelin osoitteessa http://127.0.0.1:5173
 npm run build          # tuotantoversio dist-kansioon
 npm run preview        # esikatsele buildia osoitteessa http://127.0.0.1:5173
 npm run deploy         # build + julkaisu Firebase Hostingiin
@@ -110,31 +105,13 @@ npm run deploy         # build + julkaisu Firebase Hostingiin
 Firebase-julkaisu vaatii kerran: `npm install -g firebase-tools` ja `firebase login`.
 Firebase-asetukset (tietoturvaotsakkeet, välimuisti) ovat tiedostossa [firebase.json](firebase.json).
 
-## Työpöytäsovellus (Windows)
-
-Lisää YouTube API -avain tiedostoon `%APPDATA%\Raffleri\config.json` (ohjelma näyttää tarkan polun, jos avain puuttuu):
-
-```json
-{
-  "youtubeApiKey": "LIITÄ_OMA_API_AVAIN_TÄHÄN"
-}
-```
-
-Käynnistä ohjelma uudelleen avaimen lisäämisen jälkeen.
-
-```powershell
-npm run dev            # Vite + Electron kehitystilassa (muutokset näkyvät heti)
-npm run dist           # Windows-asennusohjelma release-kansioon
-```
-
 ## Projektin rakenne
 
 | Kansio / tiedosto | Sisältö |
 |---|---|
 | `src/` | React-käyttöliittymä (komponentit, hookit, tyylit) |
-| `src/web/` | Web-version haku: YouTube, Twitch-chat ja IndexedDB-tallennus |
-| `shared/` | Yhteinen arvontalogiikka (web ja työpöytä) |
-| `electron/` | Työpöytäsovelluksen main-prosessi ja preload |
+| `src/web/` | Kommenttien haku: YouTube, Twitch-chat ja IndexedDB-tallennus |
+| `shared/` | Arvonnan säännöt ja YouTube-apufunktiot |
 | `media/` | Kuvat: `prodiscus-logo.png`, `youtube-logo.png` (sovelluksen käyttämä), `youtube-logo-original.png` |
 | `firebase.json`, `.firebaserc` | Firebase Hosting -asetukset |
 

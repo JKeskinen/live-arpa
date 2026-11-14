@@ -1,7 +1,7 @@
 /**
  * UrlPanel – Lähteet (YouTube ja Twitch) ja niiden tila
  * -----------------------------------------------------
- * YouTube: video tai kanava. Twitch: kanava (vain web-versiossa).
+ * YouTube: video tai kanava. Twitch: kanava.
  * Molemmat voivat olla käynnissä yhtä aikaa; kommentit menevät samaan
  * arvontaan.
  */
@@ -20,18 +20,16 @@ export default function UrlPanel({
   setUrl,
   twitchUrl,
   setTwitchUrl,
-  supportsTwitch,
   state,
   busy,
   nextPollIn,
-  supportsChannels,
   onLoad,
   onStop,
 }) {
   const isLive = state.streamMode === "live";
   const isOffline = state.streamMode === "offline";
   const youtubePolling = state.youtubePolling ?? state.polling;
-  const hasInput = Boolean(url.trim() || (supportsTwitch && twitchUrl.trim()));
+  const hasInput = Boolean(url.trim() || twitchUrl.trim());
   const twitch = state.twitch;
   const upcomingStart = state.upcoming?.scheduledStartTime
     ? new Date(state.upcoming.scheduledStartTime).toLocaleString("fi-FI", {
@@ -47,28 +45,22 @@ export default function UrlPanel({
     <section className="url-panel panel">
       <div className="section-label">
         <Link2 size={15} />
-        {supportsTwitch ? "LÄHTEET" : "LÄHETYKSEN OSOITE"}
+        LÄHTEET
       </div>
       <form className="url-form" onSubmit={onLoad}>
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder={
-            supportsChannels
-              ? "YouTube: @prodiscus_official tai videon osoite"
-              : "Liitä YouTube-videon tai livelähetyksen URL-osoite tähän…"
-          }
+          placeholder="YouTube: @prodiscus_official tai videon osoite"
           aria-label="YouTube-kanava tai video"
         />
-        {supportsTwitch && (
-          <input
-            className="twitch-input"
-            value={twitchUrl}
-            onChange={(e) => setTwitchUrl(e.target.value)}
-            placeholder="Twitch: twitch.tv/kanava"
-            aria-label="Twitch-kanava"
-          />
-        )}
+        <input
+          className="twitch-input"
+          value={twitchUrl}
+          onChange={(e) => setTwitchUrl(e.target.value)}
+          placeholder="Twitch: twitch.tv/kanava"
+          aria-label="Twitch-kanava"
+        />
         <button
           className="primary-btn"
           disabled={busy || !hasInput}
