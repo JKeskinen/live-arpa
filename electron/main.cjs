@@ -17,6 +17,11 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { DatabaseSync } = require("node:sqlite");
 
+// Yhteinen logiikka (sama kuin selainversiossa). ESM-moduuli ladataan
+// dynaamisesti ja odotetaan valmiiksi ennen ikkunan avaamista.
+const corePromise = import("../shared/raffleCore.mjs");
+let core;
+
 let win;
 let db;
 
@@ -28,17 +33,18 @@ let videoId = "";
 let apiKey = "";
 let streamTitle = "";
 let streamMode = "normal"; // 'live' | 'normal'
-let normalFetchId = 0;
+let sessionId = 0;
 
 // Karkea kiintiöseuranta
 let estimatedQuotaUsed = 0;
 
-const MAX_ACCEPTED_PER_AUTHOR = 3;
-const LIVE_POLL_INTERVAL_MS = 30000; // 30 sekuntia
-
 // ------------------------------------------------------------
 // 1. CONFIGURATION
 // ------------------------------------------------------------
+
+function configPath() {
+  return path.join(app.getPath("userData"), "config.json");
+}
 
 function readConfig() {
   const configPath = path.join(app.getPath("userData"), "config.json");
@@ -168,56 +174,18 @@ function migrateLegacyComments() {
 // 3. YOUTUBE API
 // ------------------------------------------------------------
 
-function parseVideoId(input) {
-  const value = String(input || "").trim();
-  if (/^[a-zA-Z0-9_-]{11}$/.test(value)) return value;
-
-  try {
-    const url = new URL(value);
-    const host = url.hostname.replace(/^www\./, "");
-
-    if (host === "youtu.be")
-      return url.pathname.split("/").filter(Boolean)[0] || "";
-
-    if (["youtube.com", "m.youtube.com", "music.youtube.com"].includes(host)) {
-      const queryId = url.searchParams.get("v");
-      if (queryId) return queryId;
-
-      const parts = url.pathname.split("/").filter(Boolean);
-      if (["live", "shorts", "embed", "v"].includes(parts[0]))
-        return parts[1] || "";
-    }
-  } catch {
-    // Ei URL
-  }
-  return "";
-}
-
 async function youtube(endpoint, params = {}) {
   if (!apiKey) {
     const config = readConfig();
     apiKey = config.youtubeApiKey || "";
   }
   if (!apiKey) {
-    throw new Error("YouTube API -avain puuttuu. Tarkista config.json.");
+    throw new Error(
+      `YouTube API -avain puuttuu. Lisää se tiedostoon ${configPath()}`,
+    );
   }
-
-  const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
-  for (const [key, value] of Object.entries({ ...params, key: apiKey })) {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, String(value));
-    }
-  }
-
-  const response = await fetch(url);
-  const data = await response.json();
-
-  if (!response.ok) {
-    const reason = data?.error?.errors?.[0]?.reason;
-    const message =
-      data?.error?.message || `YouTube API -virhe ${response.status}`;
-    throw new Error(reason ? `${message} (${reason})` : message);
-  }
+  const data = await core.youtubeRequest(apiKey, endpoint, params);
+  estimatedQuotaUsed += core.QUOTA_COST[endpoint] || 1;
   return data;
 }
 
@@ -265,15 +233,9 @@ function getComments(id = videoId) {
     .map((c) => ({ ...c, accepted: Number(c.accepted) === 1 }));
 }
 
-function saveComment({
-  source,
-  id,
-  authorId = "",
-  authorName = "Tuntematon",
-  text = "",
-  publishedAt = "",
-}) {
-  if (!videoId || !id || !String(text).trim()) return false;
+function saveComment(source, comment) {
+  if (!videoId || !comment) return false;
+  const { id, authorId, authorName, text, publishedAt } = comment;
 
   const commentId = String(id);
   const alreadyExists = db
@@ -285,7 +247,7 @@ function saveComment({
 
   const safeAuthorName = String(authorName || "Tuntematon");
   const safeAuthorId = String(authorId || "");
-  const authorKey = safeAuthorId || safeAuthorName.toLocaleLowerCase("fi-FI");
+  const authorKey = core.authorKeyFor(safeAuthorId, safeAuthorName);
 
   const acceptedCount = db
     .prepare(
@@ -293,7 +255,7 @@ function saveComment({
     )
     .get(videoId, authorKey).count;
 
-  const accepted = acceptedCount < MAX_ACCEPTED_PER_AUTHOR ? 1 : 0;
+  const accepted = core.isAccepted(acceptedCount) ? 1 : 0;
   const now = new Date().toISOString();
 
   db.prepare(
@@ -319,22 +281,13 @@ function saveComment({
 }
 
 function snapshot() {
-  const comments = getComments();
-  const acceptedComments = comments.filter((c) => c.accepted);
-  const acceptedAuthors = new Set(acceptedComments.map((c) => c.authorKey));
-
-  return {
+  return core.buildSnapshot({
     videoId,
     streamTitle,
     streamMode,
-    status: streamMode,
-    comments,
-    totalComments: comments.length,
-    uniqueCommenters: acceptedAuthors.size,
-    acceptedEntries: acceptedComments.length,
-    updatedAt: new Date().toISOString(),
     polling,
-  };
+    comments: getComments(),
+  });
 }
 
 function publishState() {
@@ -352,7 +305,7 @@ function publishError(error) {
 
 function stopCurrentWork() {
   polling = false;
-  normalFetchId++;
+  sessionId++;
   if (pollTimer) {
     clearTimeout(pollTimer);
     pollTimer = null;
@@ -363,64 +316,73 @@ function stopCurrentWork() {
 // 5. LIVE CHAT (30 s väli)
 // ------------------------------------------------------------
 
-async function pollLiveChat() {
+// Jokainen lataus aloittaa uuden session. Jos käyttäjä lataa videon
+// uudelleen kesken haun, vanha haku huomaa session vaihtuneen ja lopettaa,
+// jolloin rinnakkaisia hakusilmukoita (= tuplakiintiö) ei synny.
+async function pollLiveChat(session = sessionId) {
+  pollTimer = null;
+  if (session !== sessionId) return;
   if (!polling || streamMode !== "live" || !liveChatId) return;
 
   try {
     const params = {
       liveChatId,
       part: "snippet,authorDetails",
-      maxResults: 200,
+      maxResults: 2000, // maksimi; sama kiintiöhinta kuin pienemmällä
     };
     if (nextPageToken) params.pageToken = nextPageToken;
 
     const result = await youtube("liveChat/messages", params);
-    estimatedQuotaUsed += 5;
+    if (session !== sessionId) return;
 
     for (const item of result.items || []) {
-      const snippet = item.snippet || {};
-      const author = item.authorDetails || {};
-
-      const messageText =
-        snippet.textMessageDetails?.messageText ||
-        snippet.superChatDetails?.userComment ||
-        snippet.membershipGiftingDetails?.gifterChannelName ||
-        "";
-
-      if (!messageText.trim()) continue;
-
-      saveComment({
-        source: "live",
-        id: item.id,
-        authorId: author.channelId || "",
-        authorName: author.displayName || "Tuntematon",
-        text: messageText,
-        publishedAt: snippet.publishedAt || "",
-      });
+      saveComment("live", core.liveItemToComment(item));
     }
 
     nextPageToken = result.nextPageToken || "";
+
+    // Lähetys päättyi: lopetetaan haku, kommentit jäävät talteen.
+    if (result.offlineAt) {
+      polling = false;
+      publishState();
+      publishError("Livelähetys päättyi. Kommenttien haku pysäytettiin.");
+      return;
+    }
+
     publishState();
 
     // Ilmoita rendererille seuraava haku
     if (win && !win.isDestroyed()) {
       win.webContents.send("poll:next", {
-        nextPollAt: Date.now() + LIVE_POLL_INTERVAL_MS,
-        intervalMs: LIVE_POLL_INTERVAL_MS,
+        nextPollAt: Date.now() + core.LIVE_POLL_INTERVAL_MS,
+        intervalMs: core.LIVE_POLL_INTERVAL_MS,
       });
     }
 
     console.log(
-      `[Live] Seuraava haku ${LIVE_POLL_INTERVAL_MS / 1000} s kuluttua | Kiintiöarvio: ~${estimatedQuotaUsed}`,
+      `[Live] Seuraava haku ${core.LIVE_POLL_INTERVAL_MS / 1000} s kuluttua | Kiintiöarvio: ~${estimatedQuotaUsed}`,
     );
 
     if (polling) {
-      pollTimer = setTimeout(pollLiveChat, LIVE_POLL_INTERVAL_MS);
+      pollTimer = setTimeout(
+        () => pollLiveChat(session),
+        core.LIVE_POLL_INTERVAL_MS,
+      );
     }
   } catch (error) {
+    if (session !== sessionId) return;
+    if (core.LIVE_CHAT_ENDED_REASONS.includes(error?.reason)) {
+      polling = false;
+      publishState();
+      publishError("Livelähetyksen chat on päättynyt. Kommenttien haku pysäytettiin.");
+      return;
+    }
     publishError(error);
     if (polling) {
-      pollTimer = setTimeout(pollLiveChat, 45000);
+      pollTimer = setTimeout(
+        () => pollLiveChat(session),
+        core.LIVE_RETRY_INTERVAL_MS,
+      );
     }
   }
 }
@@ -430,15 +392,7 @@ async function pollLiveChat() {
 // ------------------------------------------------------------
 
 function saveNormalComment(item) {
-  const snippet = item.snippet || {};
-  saveComment({
-    source: "normal",
-    id: item.id,
-    authorId: snippet.authorChannelId?.value || "",
-    authorName: snippet.authorDisplayName || "Tuntematon",
-    text: snippet.textDisplay || snippet.textOriginal || "",
-    publishedAt: snippet.publishedAt || "",
-  });
+  saveComment("normal", core.normalItemToComment(item));
 }
 
 async function fetchAllNormalComments(fetchId) {
@@ -447,7 +401,7 @@ async function fetchAllNormalComments(fetchId) {
 
   try {
     do {
-      if (!polling || fetchId !== normalFetchId) return;
+      if (!polling || fetchId !== sessionId) return;
 
       const params = {
         part: "snippet,replies",
@@ -458,7 +412,6 @@ async function fetchAllNormalComments(fetchId) {
       if (pageToken) params.pageToken = pageToken;
 
       const result = await youtube("commentThreads", params);
-      estimatedQuotaUsed += 1;
 
       for (const thread of result.items || []) {
         const topLevel = thread.snippet?.topLevelComment;
@@ -484,7 +437,7 @@ async function fetchAllNormalComments(fetchId) {
     for (const parentId of replyParents) {
       let replyPageToken = "";
       do {
-        if (!polling || fetchId !== normalFetchId) return;
+        if (!polling || fetchId !== sessionId) return;
 
         const params = {
           part: "snippet",
@@ -495,7 +448,6 @@ async function fetchAllNormalComments(fetchId) {
         if (replyPageToken) params.pageToken = replyPageToken;
 
         const result = await youtube("comments", params);
-        estimatedQuotaUsed += 1;
 
         for (const reply of result.items || []) {
           saveNormalComment(reply);
@@ -506,12 +458,12 @@ async function fetchAllNormalComments(fetchId) {
       } while (replyPageToken);
     }
 
-    if (fetchId === normalFetchId) {
+    if (fetchId === sessionId) {
       polling = false;
       publishState();
     }
   } catch (error) {
-    if (fetchId === normalFetchId) {
+    if (fetchId === sessionId) {
       polling = false;
       publishState();
       publishError(error);
@@ -526,7 +478,7 @@ async function fetchAllNormalComments(fetchId) {
 ipcMain.handle("config:get", async () => {
   const config = readConfig();
   apiKey = config.youtubeApiKey || "";
-  return { configured: Boolean(apiKey) };
+  return { configured: Boolean(apiKey), configPath: configPath() };
 });
 
 ipcMain.handle("stream:load", async (_event, input) => {
@@ -536,10 +488,12 @@ ipcMain.handle("stream:load", async (_event, input) => {
   const config = readConfig();
   apiKey = config.youtubeApiKey || "";
   if (!apiKey) {
-    throw new Error("YouTube API -avain puuttuu. Tarkista config.json.");
+    throw new Error(
+      `YouTube API -avain puuttuu. Lisää se tiedostoon ${configPath()}`,
+    );
   }
 
-  const parsedId = parseVideoId(input);
+  const parsedId = core.parseVideoId(input);
   if (!parsedId)
     throw new Error("YouTube-videon URL-osoitetta ei tunnistettu.");
 
@@ -547,7 +501,6 @@ ipcMain.handle("stream:load", async (_event, input) => {
     part: "snippet,liveStreamingDetails",
     id: parsedId,
   });
-  estimatedQuotaUsed += 1;
 
   const video = videoResult.items?.[0];
   if (!video) throw new Error("Videota ei löytynyt.");
@@ -575,12 +528,12 @@ ipcMain.handle("stream:load", async (_event, input) => {
     if (win && !win.isDestroyed()) {
       win.webContents.send("poll:next", {
         nextPollAt: Date.now() + 1000, // ensimmäinen haku melkein heti
-        intervalMs: LIVE_POLL_INTERVAL_MS,
+        intervalMs: core.LIVE_POLL_INTERVAL_MS,
       });
     }
     pollLiveChat();
   } else {
-    fetchAllNormalComments(normalFetchId);
+    fetchAllNormalComments(sessionId);
   }
 
   return snapshot();
@@ -612,14 +565,21 @@ function createWindow() {
     },
   });
 
-  if (process.env.VITE_DEV_SERVER_URL) {
-    win.loadURL(process.env.VITE_DEV_SERVER_URL);
+  // `npm run dev` käynnistää Electronin --dev-lipulla, jolloin käyttöliittymä
+  // ladataan Viten dev-palvelimelta (muutokset näkyvät heti).
+  const devServerUrl =
+    process.env.VITE_DEV_SERVER_URL ||
+    (process.argv.includes("--dev") ? "http://127.0.0.1:5173" : "");
+
+  if (devServerUrl) {
+    win.loadURL(devServerUrl);
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  core = await corePromise;
   openDatabase();
   createWindow();
 

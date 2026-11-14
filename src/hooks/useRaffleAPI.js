@@ -1,10 +1,22 @@
 /**
- * useRaffleAPI – Electron IPC -yhteys
- * ------------------------------------
- * Kuuntelee main-prosessin viestejä ja tarjoaa lataus/pysäytys-funktiot.
+ * useRaffleAPI – yhteys kommenttien hakuun
+ * ----------------------------------------
+ * Electronissa käytetään preload-skriptin window.raffleAPI:a (main-prosessi
+ * ja SQLite). Selaimessa käytetään webRaffleAPI:a (IndexedDB), jolla on
+ * sama rajapinta.
  */
 
 import { useEffect, useState } from "react";
+import { webRaffleAPI } from "../web/webRaffleAPI";
+
+const api =
+  typeof window !== "undefined" && window.raffleAPI
+    ? window.raffleAPI
+    : webRaffleAPI;
+
+export const isWeb = Boolean(api.isWeb);
+export const supportsChannels = Boolean(api.supportsChannels);
+export const supportsTwitch = Boolean(api.supportsTwitch);
 
 const empty = {
   videoId: "",
@@ -18,38 +30,46 @@ const empty = {
   polling: false,
 };
 
+function missingKeyNotice(config) {
+  if (config.configured) return "";
+  if (isWeb) {
+    return "YouTube API -avain puuttuu. Lisää se asetuksista (rataskuvake oikealla ylhäällä).";
+  }
+  return config.configPath
+    ? `YouTube API -avain puuttuu. Lisää se tiedostoon ${config.configPath} ja käynnistä ohjelma uudelleen.`
+    : "YouTube API -avain puuttuu. Katso ohjeet README.md-tiedostosta.";
+}
+
 export function useRaffleAPI(setError) {
   const [state, setState] = useState(empty);
   const [busy, setBusy] = useState(false);
   const [configNotice, setConfigNotice] = useState("");
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [notice, setNotice] = useState("");
   const [nextPollIn, setNextPollIn] = useState(null);
 
   useEffect(() => {
-    if (!window.raffleAPI) {
-      setError(
-        "YouTube-kommenttien haku ei ole käytettävissä selainversiossa. Käytä Windows- tai Mac-sovellusta."
-      );
-      return;
-    }
+    api
+      .getConfig()
+      .then((config) => {
+        setApiKeyConfigured(Boolean(config.configured));
+        setConfigNotice(missingKeyNotice(config));
+      })
+      .catch(() => {})
+      .finally(() => setConfigLoaded(true));
 
-    window.raffleAPI.getConfig().then((config) => {
-      if (!config.configured) {
-        setConfigNotice(
-          "YouTube API -avain puuttuu. Tarkista README.md ja config.json."
-        );
-      }
-    });
-
-    const offUpdate = window.raffleAPI.onUpdate((data) => setState(data));
-    const offError = window.raffleAPI.onError((message) => setError(message));
+    const offUpdate = api.onUpdate((data) => setState(data));
+    const offError = api.onError((message) => setError(message));
+    const offNotice = api.onNotice?.((message) => setNotice(message || ""));
 
     let countdownInterval = null;
-    const offPoll = window.raffleAPI.onPollNext?.(({ nextPollAt }) => {
+    const offPoll = api.onPollNext?.(({ nextPollAt }) => {
       if (countdownInterval) clearInterval(countdownInterval);
       const tick = () => {
         const remaining = Math.max(
           0,
-          Math.ceil((nextPollAt - Date.now()) / 1000)
+          Math.ceil((nextPollAt - Date.now()) / 1000),
         );
         setNextPollIn(remaining);
       };
@@ -57,7 +77,7 @@ export function useRaffleAPI(setError) {
       countdownInterval = setInterval(tick, 1000);
     });
 
-    window.raffleAPI
+    api
       .getState()
       .then(setState)
       .catch((err) => {
@@ -67,21 +87,23 @@ export function useRaffleAPI(setError) {
     return () => {
       offUpdate();
       offError();
+      offNotice?.();
       offPoll?.();
       if (countdownInterval) clearInterval(countdownInterval);
     };
   }, [setError]);
 
-  async function loadStream(url) {
-    if (!window.raffleAPI) {
-      setError("YouTube-kommenttien haku ei ole käytettävissä selainversiossa.");
-      return;
-    }
+  /** sources = { youtube, twitch }. Electron tukee vain YouTubea. */
+  async function loadStream(sources) {
     setBusy(true);
     setError("");
     setNextPollIn(null);
     try {
-      const data = await window.raffleAPI.loadStream(url.trim());
+      const data = await api.loadStream(
+        supportsTwitch
+          ? { youtube: sources.youtube.trim(), twitch: sources.twitch.trim() }
+          : sources.youtube.trim(),
+      );
       setState(data);
     } catch (err) {
       setError(err.message || "Videota ei voitu ladata.");
@@ -93,9 +115,64 @@ export function useRaffleAPI(setError) {
   async function stopStream() {
     setNextPollIn(null);
     try {
-      setState(await window.raffleAPI.stopStream());
+      setState(await api.stopStream());
     } catch (err) {
       setError(err.message || "Keräystä ei voitu pysäyttää.");
+    }
+  }
+
+  async function saveApiKey(key) {
+    if (!api.setApiKey) return;
+    try {
+      const config = await api.setApiKey(key);
+      setApiKeyConfigured(Boolean(config.configured));
+      setConfigNotice(missingKeyNotice(config));
+      setError("");
+    } catch (err) {
+      setError(err.message || "API-avaimen tallennus epäonnistui.");
+    }
+  }
+
+  async function exportData() {
+    if (!api.exportData) return;
+    try {
+      const data = await api.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      link.href = URL.createObjectURL(blob);
+      link.download = `raffleri-varmuuskopio-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      setNotice(
+        `Varmuuskopio ladattu: ${data.comments.length} kommenttia, ${data.videos.length} videota.`,
+      );
+    } catch (err) {
+      setError(err.message || "Varmuuskopion teko epäonnistui.");
+    }
+  }
+
+  async function importData(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !api.importData) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const counts = await api.importData(data);
+      setNotice(
+        `Varmuuskopio palautettu: ${counts.comments} kommenttia, ${counts.videos} videota.`,
+      );
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof SyntaxError
+          ? "Tiedosto ei ole kelvollista JSONia."
+          : err.message || "Varmuuskopion palautus epäonnistui.",
+      );
     }
   }
 
@@ -104,8 +181,17 @@ export function useRaffleAPI(setError) {
     setState,
     busy,
     configNotice,
+    apiKeyConfigured,
+    notice,
     nextPollIn,
     loadStream,
     stopStream,
+    saveApiKey,
+    exportData,
+    importData,
+    isWeb,
+    supportsChannels,
+    supportsTwitch,
+    configLoaded,
   };
 }

@@ -5,6 +5,7 @@
  */
 
 import { Settings2 } from "lucide-react";
+import BrandMark from "./BrandMark";
 
 export default function BrandingBar({
   branding,
@@ -13,20 +14,7 @@ export default function BrandingBar({
 }) {
   return (
     <section className="branding-panel panel">
-      <div className="branding-preview">
-        {branding.image ? (
-          <img
-            className={`brand-custom-image animation-${branding.animation}`}
-            src={branding.image}
-            alt="Valittu tunnus"
-          />
-        ) : (
-          <div className="prodiscus-wordmark">
-            <span className="prodiscus-disc">P</span>
-            <span>PRODISCUS</span>
-          </div>
-        )}
-      </div>
+      <BrandMark branding={branding} />
       <div className="branding-copy">
         <strong>PRODISCUS</strong>
         <span>RAFFLERI</span>

@@ -6,6 +6,7 @@
 
 import { Radio, MessageSquare, ShieldCheck } from "lucide-react";
 import { time } from "../utils/format";
+import PlatformLogo from "./PlatformLogo";
 
 export default function CommentsPanel({ comments, isLive, totalComments }) {
   const latest = [...comments].reverse().slice(0, 20);
@@ -31,7 +32,10 @@ export default function CommentsPanel({ comments, isLive, totalComments }) {
             </div>
             <div className="comment-body">
               <div className="comment-meta">
-                <strong>{comment.name}</strong>
+                <strong className="comment-author">
+                  <PlatformLogo comment={comment} size={14} />
+                  <span>{comment.name}</span>
+                </strong>
                 <time>{time(comment.publishedAt)}</time>
               </div>
               <div className="comment-text">{comment.text}</div>
@@ -56,7 +60,7 @@ export default function CommentsPanel({ comments, isLive, totalComments }) {
           <strong>Osallistumissäännöt</strong>
           <p>
             Kommentoi osallistuaksesi arvontaan. Arvonnassa max 3 kommenttia
-            yhdeltä kommentoijalta.
+            yhdeltä kommentoijalta (YouTube ja Twitch erikseen).
           </p>
         </div>
       </div>

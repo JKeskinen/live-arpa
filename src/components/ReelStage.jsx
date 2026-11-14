@@ -5,6 +5,7 @@
  */
 
 import { Trophy } from "lucide-react";
+import PlatformLogo, { PLATFORM_NAME, platformOf } from "./PlatformLogo";
 
 export default function ReelStage({
   entries,
@@ -53,6 +54,9 @@ export default function ReelStage({
           </div>
 
           <div className="reel-name">
+            {winner && (
+              <PlatformLogo comment={winner} size={28} className="reel-name-logo" />
+            )}
             {displayed?.name || "VALMIS ARVONTAAN"}
           </div>
           <div className="reel-comment">
@@ -63,6 +67,10 @@ export default function ReelStage({
             <div className="winner-label">
               <Trophy size={14} />
               VOITTAJA
+              <span className="winner-platform">
+                <PlatformLogo comment={winner} size={16} />
+                {PLATFORM_NAME[platformOf(winner)]}
+              </span>
             </div>
           )}
 

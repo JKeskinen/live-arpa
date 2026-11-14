@@ -54,3 +54,9 @@ temp/
 *.tmp
 *.bak
 *.old
+
+
+graphify-out/
+
+# Firebase
+.firebase/

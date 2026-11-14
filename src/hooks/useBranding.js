@@ -1,10 +1,13 @@
 /**
  * useBranding – Brändäyksen ja isännän nimen hallinta
  * ---------------------------------------------------
- * Tallentaa branding-asetukset ja isännän nimen localStorageen.
+ * Asetukset (animaatio ym.) ja isännän nimi tallennetaan localStorageen.
+ * Tunnuskuva tallennetaan IndexedDB:hen, koska localStoragen ~5 Mt:n raja
+ * täyttyy helposti kuvalla.
  */
 
 import { useEffect, useState } from "react";
+import { kvGet, kvSet } from "../web/db";
 
 const DEFAULT_BRANDING = {
   image: "",
@@ -12,16 +15,26 @@ const DEFAULT_BRANDING = {
   showWordmark: true,
 };
 
+const SETTINGS_KEY = "raffle-branding";
+const IMAGE_KEY = "branding-image";
+
+function readSettings() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    return stored ? { ...DEFAULT_BRANDING, ...stored } : DEFAULT_BRANDING;
+  } catch {
+    return DEFAULT_BRANDING;
+  }
+}
+
+function writeSettings(branding) {
+  // eslint-disable-next-line no-unused-vars
+  const { image, ...settings } = branding;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
 export function useBranding(setError) {
-  const [branding, setBranding] = useState(() => {
-    try {
-      return (
-        JSON.parse(localStorage.getItem("raffle-branding")) || DEFAULT_BRANDING
-      );
-    } catch {
-      return DEFAULT_BRANDING;
-    }
-  });
+  const [branding, setBranding] = useState(readSettings);
 
   const [hostName, setHostName] = useState(() => {
     try {
@@ -30,6 +43,29 @@ export function useBranding(setError) {
       return "prodiscus_official";
     }
   });
+
+  // Lataa kuva IndexedDB:stä. Siirrä vanha localStoragessa ollut kuva.
+  useEffect(() => {
+    let cancelled = false;
+    const legacyImage = readSettings().image;
+
+    (async () => {
+      try {
+        if (legacyImage) {
+          await kvSet(IMAGE_KEY, legacyImage);
+          writeSettings(readSettings());
+        }
+        const image = legacyImage || (await kvGet(IMAGE_KEY)) || "";
+        if (!cancelled) setBranding((previous) => ({ ...previous, image }));
+      } catch {
+        // Kuvaa ei saatu ladattua; käytetään oletustekstiä.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -40,13 +76,17 @@ export function useBranding(setError) {
   }, [hostName]);
 
   function updateBranding(next) {
+    if ("image" in next) {
+      kvSet(IMAGE_KEY, next.image).catch(() =>
+        setError?.("Kuvan tallennus epäonnistui. Valitse pienempi kuvatiedosto."),
+      );
+    }
     setBranding((previous) => {
       const updated = { ...previous, ...next };
       try {
-        localStorage.setItem("raffle-branding", JSON.stringify(updated));
+        writeSettings(updated);
       } catch {
-        setError?.("Kuvan tallennus epäonnistui. Valitse pienempi kuvatiedosto.");
-        return previous;
+        setError?.("Asetusten tallennus epäonnistui.");
       }
       return updated;
     });

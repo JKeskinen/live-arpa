@@ -917,8 +917,10 @@ footer b {
   width: 54px;
   height: 54px;
   flex-shrink: 0;
-  display: grid;
-  place-items: center;
+  /* flex keskittää myös leveämmän sisällön (gridi asettaisi sen vasemmalle) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1056,8 +1058,9 @@ footer b {
 .animation-spin {
   animation: brandSpin 4s linear infinite;
 }
+/* Rauhallinen syke: hidas ja pienellä liikkeellä */
 .animation-pulse {
-  animation: brandPulse 1.5s ease-in-out infinite;
+  animation: brandPulse 4s ease-in-out infinite;
 }
 .animation-float {
   animation: brandFloat 2.5s ease-in-out infinite;
@@ -1071,12 +1074,20 @@ footer b {
 @keyframes brandPulse {
   0%,
   100% {
-    transform: scale(0.88);
-    opacity: 0.75;
+    transform: scale(0.96);
+    opacity: 0.92;
   }
   50% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animation-pulse,
+  .animation-float,
+  .animation-spin {
+    animation: none;
   }
 }
 @keyframes brandFloat {
@@ -1156,43 +1167,43 @@ footer b {
 }
 
 /* =========================================
-   STREAM MODE
+   TIIVISTETTY NÄKYMÄ
    ========================================= */
 
-.app-shell.stream-mode .url-panel,
-.app-shell.stream-mode .stats-grid,
-.app-shell.stream-mode footer {
+.app-shell.view-compact .url-panel,
+.app-shell.view-compact .stats-grid,
+.app-shell.view-compact footer {
   display: none;
 }
 
-.app-shell.stream-mode {
+.app-shell.view-compact {
   padding: 8px 12px;
 }
 
-.app-shell.stream-mode .topbar {
+.app-shell.view-compact .topbar {
   height: 48px;
   margin-bottom: 8px;
 }
 
-.app-shell.stream-mode .content-grid {
+.app-shell.view-compact .content-grid {
   grid-template-columns: 1fr 240px;
   gap: 8px;
 }
 
-.app-shell.stream-mode .raffle-panel {
+.app-shell.view-compact .raffle-panel {
   padding: 10px;
 }
 
-.app-shell.stream-mode .reel-stage {
+.app-shell.view-compact .reel-stage {
   height: 180px;
   margin: 8px 0;
 }
 
-.app-shell.stream-mode .comments-panel {
+.app-shell.view-compact .comments-panel {
   padding: 10px;
 }
 
-.app-shell.stream-mode .comment-list {
+.app-shell.view-compact .comment-list {
   max-height: 200px;
 }
 
@@ -1219,10 +1230,6 @@ footer b {
     gap: 8px;
   }
 
-  .stats-grid .stat-card:nth-child(3),
-  .stats-grid .stat-card:nth-child(4) {
-    display: none;
-  }
 
   .content-grid {
     grid-template-columns: 1fr;
@@ -1238,45 +1245,36 @@ footer b {
     margin: 8px 0;
   }
 
-  .comments-panel {
-    max-height: 260px;
-  }
-
-  .comment-list {
-    max-height: 150px;
-  }
 
   .raffle-actions {
     grid-template-columns: 1fr;
   }
 
-  .branding-panel,
-  .url-panel,
   footer {
     display: none;
   }
 } /* =========================================
-   STREAM MODE – TÄYTETTY
+   TIIVISTETTY NÄKYMÄ – TÄYTETTY
    ========================================= */
 
-.app-shell.stream-mode .url-panel,
-.app-shell.stream-mode footer {
+.app-shell.view-compact .url-panel,
+.app-shell.view-compact footer {
   display: none;
 }
 
-.app-shell.stream-mode {
+.app-shell.view-compact {
   padding: 8px 12px;
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-.app-shell.stream-mode .branding-panel {
+.app-shell.view-compact .branding-panel {
   margin-bottom: 8px;
   flex-shrink: 0;
 }
 
-.app-shell.stream-mode .stats-grid {
+.app-shell.view-compact .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -1284,44 +1282,44 @@ footer b {
   flex-shrink: 0;
 }
 
-.app-shell.stream-mode .stats-grid .stat-card:nth-child(3) {
+.app-shell.view-compact .stats-grid .stat-card:nth-child(3) {
   display: none;
 }
 
-.app-shell.stream-mode .content-grid {
+.app-shell.view-compact .content-grid {
   flex: 1;
   grid-template-columns: 1.3fr 1fr;
   gap: 10px;
   min-height: 0;
 }
 
-.app-shell.stream-mode .raffle-panel,
-.app-shell.stream-mode .comments-panel {
+.app-shell.view-compact .raffle-panel,
+.app-shell.view-compact .comments-panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
 
-.app-shell.stream-mode .reel-stage {
+.app-shell.view-compact .reel-stage {
   flex: 1;
   height: auto;
   min-height: 180px;
   margin: 8px 0;
 }
 
-.app-shell.stream-mode .comment-list {
+.app-shell.view-compact .comment-list {
   flex: 1;
   max-height: none;
   min-height: 0;
 }
 
-.app-shell.stream-mode .raffle-actions {
+.app-shell.view-compact .raffle-actions {
   grid-template-columns: 1fr;
   margin-top: auto;
 }
 
-.app-shell.stream-mode .start-btn {
+.app-shell.view-compact .start-btn {
   height: 50px;
   font-size: 12px;
   background: linear-gradient(110deg, var(--cyan), var(--purple));
@@ -1370,4 +1368,830 @@ footer b {
 .new-winner-action .copy-btn:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* =========================================
+   STREAM MODE – vain arvontaikkuna
+   ========================================= */
+
+.app-shell.view-stream {
+  height: 100vh;
+  max-width: none;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell.view-stream .branding-panel,
+.app-shell.view-stream .url-panel,
+.app-shell.view-stream .stats-grid,
+.app-shell.view-stream .comments-panel,
+.app-shell.view-stream .notice,
+.app-shell.view-stream footer {
+  display: none;
+}
+
+.app-shell.view-stream .content-grid {
+  flex: 1;
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+.app-shell.view-stream .raffle-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell.view-stream .reel-stage {
+  flex: 1;
+  height: auto;
+  min-height: 220px;
+  margin: 10px 0;
+}
+
+.app-shell.view-stream .raffle-actions {
+  margin-top: auto;
+}
+
+.app-shell.view-stream .start-btn {
+  height: 52px;
+  font-size: 13px;
+}
+
+.app-shell.view-stream .today-winners {
+  flex-shrink: 0;
+  max-height: 28vh;
+  overflow-y: auto;
+}
+
+/* Lähes näkymätön asetusnappi: tulee esiin hiirellä osoitettaessa */
+.stream-settings-button {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 50;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel, #111);
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0.08;
+  transition: opacity 0.2s;
+}
+
+.stream-settings-button:hover,
+.stream-settings-button:focus-visible {
+  opacity: 1;
+}
+
+.app-shell.view-stream .settings-panel {
+  flex-shrink: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-bottom: 10px;
+}
+
+/* =========================================
+   ASETUKSET – LOKEROT
+   ========================================= */
+
+.settings-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+.settings-section {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--page-bg);
+  padding: 16px;
+  min-width: 0;
+}
+
+.settings-section.is-wide {
+  grid-column: 1 / -1;
+}
+
+.settings-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-section-head svg {
+  color: var(--cyan);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.settings-section-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.settings-section-head p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.settings-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-section .setting-item input,
+.settings-section .setting-item select {
+  background: var(--panel);
+}
+
+.setting-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.setting-row input {
+  flex: 1 1 220px;
+}
+
+.setting-row .primary-btn {
+  height: 40px;
+  padding: 0 16px;
+}
+
+.setting-row .copy-btn,
+label.copy-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  cursor: pointer;
+}
+
+.setting-help {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.setting-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.setting-status.is-ok {
+  color: #7ee2a8;
+  background: #7ee2a815;
+}
+
+.setting-status.is-missing {
+  color: #ff9da6;
+  background: #ff546415;
+}
+
+.setting-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.setting-check input {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: var(--cyan);
+  flex-shrink: 0;
+}
+
+.setting-check span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.setting-check small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.setting-rules {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* Näkymän valinta */
+.view-mode-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.view-mode-option {
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.view-mode-option.is-active {
+  border-color: var(--cyan);
+  background: linear-gradient(110deg, var(--cyan), var(--purple));
+  color: #111;
+}
+
+.view-mode-info {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.view-mode-info p {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.view-mode-info ul {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+}
+
+.obs-guide {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.obs-guide summary {
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--cyan);
+}
+
+.obs-guide ol {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.obs-guide li {
+  margin-bottom: 5px;
+}
+
+@media (max-width: 700px) {
+  .settings-sections {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-section input,
+.settings-section select {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* =========================================
+   VAIHTUVA OTSIKKO
+   ========================================= */
+
+.rotating-heading {
+  min-height: 1.25em;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.rotating-heading.is-hidden {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotating-heading {
+    transition: none;
+    transform: none;
+  }
+}
+
+.raffle-stream-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: none;
+}
+
+.raffle-stream-title::before {
+  content: "•";
+  margin-right: 8px;
+  color: var(--cyan);
+}
+
+.view-mode-options.is-two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.settings-section textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.setting-reset {
+  align-self: flex-start;
+}
+
+/* =========================================
+   ARVONTAIKKUNAN BRÄNDI (näkyy kaikissa näkymissä)
+   ========================================= */
+
+.panel-heading.raffle-heading {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 16px;
+}
+
+.raffle-brand-mark {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+  border-color: var(--cyan);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--cyan) 28%, transparent);
+}
+
+.raffle-brand-mark .prodiscus-wordmark {
+  transform: scale(1.25);
+}
+
+.raffle-heading-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.raffle-brand-label {
+  gap: 7px;
+  min-width: 0;
+}
+
+.raffle-brand-name {
+  color: var(--text);
+  letter-spacing: 2px;
+}
+
+.raffle-brand-product {
+  color: var(--cyan);
+  letter-spacing: 1.5px;
+}
+
+/* Stream modessa brändi vielä näkyvämmin */
+.app-shell.view-stream .raffle-brand-mark {
+  width: 92px;
+  height: 92px;
+  border-radius: 18px;
+}
+
+.app-shell.view-stream .raffle-brand-mark .prodiscus-wordmark {
+  transform: scale(1.7);
+}
+
+.app-shell.view-stream .raffle-brand-label {
+  font-size: 13px;
+}
+
+.app-shell.view-stream .panel-heading h1 {
+  font-size: 30px;
+  margin: 6px 0 4px;
+}
+
+.app-shell.view-stream .panel-heading p {
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .raffle-brand-mark {
+    width: 52px;
+    height: 52px;
+  }
+  .raffle-brand-mark .prodiscus-wordmark {
+    transform: none;
+  }
+}
+
+/* Kommentoijan nimi + palvelun logo kommenttivirrassa */
+.comment-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.comment-author > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Twitch-lähde */
+.twitch-row {
+  margin-top: 10px;
+}
+
+.twitch-icon {
+  background: #9146ff1f;
+  color: #b28bff;
+}
+
+.live-logo.twitch-live {
+  color: #c4a6ff;
+  background: #9146ff14;
+  border-color: #9146ff40;
+}
+
+@media (max-width: 700px) {
+  .url-form {
+    flex-wrap: wrap;
+  }
+  .url-form input {
+    flex: 1 1 100%;
+  }
+}
+
+/* Asetukset: lähteet rinnakkain */
+.source-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.source-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.source-form > .primary-btn {
+  align-self: flex-start;
+  height: 40px;
+  padding: 0 22px;
+}
+
+/* Palvelun logo (voittaja: YouTube / Twitch) */
+.platform-logo {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.platform-logo img,
+.platform-logo svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+.winner-name-row {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+}
+
+.reel-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.winner-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid currentColor;
+}
+
+/* =========================================
+   MOBIILI (.is-mobile, tunnistus: useIsMobile)
+   ========================================= */
+
+.app-shell.is-mobile {
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+}
+
+/* Yläpalkki: pieni logo, ratas aina näkyvissä */
+.app-shell.is-mobile .branding-panel {
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.app-shell.is-mobile .branding-panel .branding-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.app-shell.is-mobile .branding-panel .prodiscus-wordmark {
+  transform: scale(0.66);
+}
+
+.app-shell.is-mobile .branding-copy strong {
+  font-size: 12px;
+}
+
+.app-shell.is-mobile .settings-button {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
+/* Lähteet: kentät allekkain, iso LATAA-painike */
+.app-shell.is-mobile .url-panel {
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.app-shell.is-mobile .url-form {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-shell.is-mobile .url-form input {
+  flex: none;
+  width: 100%;
+  height: 44px;
+  font-size: 16px; /* estää iPhonen automaattisen zoomauksen */
+  box-sizing: border-box;
+}
+
+.app-shell.is-mobile .url-form .primary-btn {
+  width: 100%;
+  height: 46px;
+  justify-content: center;
+}
+
+.app-shell.is-mobile .stream-row {
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+/* Tilastot: kolme pientä korttia rinnakkain, otsikot rivittyvät */
+.app-shell.is-mobile .stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.app-shell.is-mobile .stat-card {
+  padding: 9px 10px;
+}
+
+.app-shell.is-mobile .stat-top {
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.app-shell.is-mobile .stat-icon {
+  display: none;
+}
+
+.app-shell.is-mobile .stat-label {
+  font-size: 8px;
+  letter-spacing: 0.8px;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.app-shell.is-mobile .stat-value,
+.app-shell.is-mobile .updated-time {
+  font-size: 20px;
+  margin: 6px 0 0;
+}
+
+.app-shell.is-mobile .stat-foot {
+  display: none;
+}
+
+/* Arvontaikkuna */
+.app-shell.is-mobile .content-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.app-shell.is-mobile .raffle-panel {
+  padding: 12px;
+}
+
+.app-shell.is-mobile .panel-heading.raffle-heading {
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.app-shell.is-mobile .raffle-brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+}
+
+.app-shell.is-mobile .raffle-brand-mark .prodiscus-wordmark {
+  transform: scale(0.78);
+}
+
+.app-shell.is-mobile .raffle-brand-label {
+  font-size: 9px;
+  flex-wrap: wrap;
+}
+
+.app-shell.is-mobile .panel-heading h1 {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 4px 0 3px;
+}
+
+.app-shell.is-mobile .panel-heading p {
+  font-size: 11px;
+}
+
+/* Rulla: sivunimet pois, keskikortti koko leveydeltä */
+.app-shell.is-mobile .reel-stage {
+  height: auto;
+  min-height: 200px;
+  margin: 10px 0;
+  padding: 12px 0;
+}
+
+.app-shell.is-mobile .reel-window {
+  grid-template-columns: 1fr;
+  padding: 0 10px;
+}
+
+.app-shell.is-mobile .reel-side {
+  display: none;
+}
+
+.app-shell.is-mobile .reel-center {
+  min-height: 170px;
+}
+
+.app-shell.is-mobile .reel-name {
+  font-size: 18px;
+}
+
+.app-shell.is-mobile .winner-label {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.app-shell.is-mobile .start-btn {
+  max-width: none;
+  height: 52px;
+}
+
+.app-shell.is-mobile .raffle-hint {
+  flex-wrap: wrap;
+  text-align: center;
+  font-size: 10px;
+}
+
+/* Voittaja ja voittajalista: kopiointi rivittyy alle */
+.app-shell.is-mobile .winner-result {
+  flex-wrap: wrap;
+}
+
+.app-shell.is-mobile .winner-result > div:nth-child(2) {
+  flex: 1 1 calc(100% - 60px);
+}
+
+.app-shell.is-mobile .winner-result .copy-btn {
+  width: 100%;
+  height: 40px;
+}
+
+.app-shell.is-mobile .today-winners {
+  padding: 12px !important;
+}
+
+/* Kommentit: lista vierii paneelin sisällä */
+.app-shell.is-mobile .comments-panel {
+  padding: 12px;
+  max-height: none;
+}
+
+.app-shell.is-mobile .comment-list {
+  min-height: 0;
+  max-height: 340px;
+}
+
+.app-shell.is-mobile .comment-item {
+  padding: 10px 0;
+}
+
+/* Kosketus: riittävän isot painikkeet */
+.app-shell.is-mobile .copy-btn {
+  min-height: 36px;
+}
+
+/* Asetukset */
+.app-shell.is-mobile .settings-panel {
+  padding: 12px;
+}
+
+.app-shell.is-mobile .settings-section {
+  padding: 12px;
+}
+
+.app-shell.is-mobile .settings-section input,
+.app-shell.is-mobile .settings-section select,
+.app-shell.is-mobile .settings-section textarea {
+  font-size: 16px; /* estää iPhonen automaattisen zoomauksen */
+}
+
+.app-shell.is-mobile .view-mode-option {
+  padding: 10px 4px;
+  font-size: 11px;
+}
+
+/* Stream mode puhelimessa: ratas näkyvissä (ei hiirtä, jolla osoittaa) */
+.app-shell.is-mobile.view-stream {
+  height: 100dvh;
+  padding: 8px;
+}
+
+.app-shell.is-mobile .stream-settings-button {
+  opacity: 0.55;
+  width: 40px;
+  height: 40px;
+}
+
+.app-shell.is-mobile.view-stream .raffle-brand-mark {
+  width: 56px;
+  height: 56px;
+}
+
+.app-shell.is-mobile.view-stream .raffle-brand-mark .prodiscus-wordmark {
+  transform: scale(0.92);
+}
+
+.app-shell.is-mobile.view-stream .panel-heading h1 {
+  font-size: 20px;
+  padding-right: 40px; /* tilaa rattaalle */
+}
+
+.app-shell.is-mobile.view-stream .reel-stage {
+  flex: 1;
+}
+
+.app-shell.is-mobile.view-stream .today-winners {
+  max-height: 22vh;
 }
