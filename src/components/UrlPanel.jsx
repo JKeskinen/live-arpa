@@ -30,7 +30,6 @@ export default function UrlPanel({
   busy,
   nextPollIn,
   onLoad,
-  onStartDemo,
   onStop,
 }) {
   const isLive = state.streamMode === "live";
@@ -77,18 +76,6 @@ export default function UrlPanel({
           {busy ? "LADATAAN…" : "LATAA"}
         </button>
       </form>
-
-      <div className="demo-launch">
-        <button
-          type="button"
-          className="copy-btn"
-          onClick={onStartDemo}
-          disabled={busy}
-        >
-          <FlaskConical size={13} />
-          {state.demo ? "Aloita demo alusta" : "Kokeile demolla (simuloitu lähetys)"}
-        </button>
-      </div>
 
       {state.demo && (
         <div className="stream-row demo-row">

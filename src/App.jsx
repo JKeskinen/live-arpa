@@ -12,6 +12,7 @@ import { useBranding } from "./hooks/useBranding";
 import { useRaffleAPI } from "./hooks/useRaffleAPI";
 import { useWinners } from "./hooks/useWinners";
 import { useIsMobile } from "./hooks/useIsMobile";
+import { DEMO_ENABLED } from "./config";
 import { winnerChatMessage, winnersListMessage } from "./utils/winnerMessage";
 import { useHeading, headingTexts, contactInfoOf } from "./hooks/useHeading";
 import { themeProfile } from "./themes";
@@ -125,8 +126,9 @@ export default function App() {
   useEffect(() => {
     if (autoStarted.current || !configLoaded) return;
     autoStarted.current = true;
-    // Osoite ?demo käynnistää simuloidun lähetyksen (testiversio).
-    if (new URLSearchParams(window.location.search).has("demo")) {
+    // Osoite ?demo käynnistää simuloidun lähetyksen – vain kehitys- ja
+    // testibuildissa (src/config.js). Oikealla sivulla demo ei ole käytössä.
+    if (DEMO_ENABLED && new URLSearchParams(window.location.search).has("demo")) {
       handleStartDemo();
       return;
     }
@@ -371,8 +373,6 @@ export default function App() {
           twitchUrl={twitchUrl}
           setTwitchUrl={setTwitchUrl}
           onLoad={handleLoad}
-          onStartDemo={handleStartDemo}
-          isDemo={isDemo}
           busy={busy}
           autoStart={autoStart}
           setAutoStart={setAutoStart}
@@ -393,7 +393,6 @@ export default function App() {
         busy={busy}
         nextPollIn={nextPollIn}
         onLoad={handleLoad}
-        onStartDemo={handleStartDemo}
         onStop={handleStop}
       />
 

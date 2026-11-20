@@ -17,7 +17,7 @@ Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 - **Teemat:** Prodiscus ja Kuidemaen (Twitch, Counter-Strike 2 -henkinen). Teema vaihtaa värit, logon ja tekstit.
 - **Tekstit:** vaihtuvat sloganit tai kiinteä otsikko, alarivi ja voittajan ohje – teemakohtaisesti muokattavissa.
 - **Brändäys:** oma tunnuskuva ja animaatio teemakohtaisesti.
-- **Demotila:** simuloitu lähetys testaukseen (`?demo`).
+- **Demotila:** simuloitu lähetys kehittäjän testaukseen (`?demo`, ei oikealla sivulla).
 - **Mobiili:** näkymä mukautuu puhelimeen automaattisesti.
 - **Varmuuskopio:** kommentit JSON-tiedostoksi ja takaisin.
 
@@ -62,12 +62,13 @@ Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 
 Simuloitu lähetys tuottaa YouTube- ja Twitch-kommentteja, joten arvontaa, näkymiä ja sääntöjä voi kokeilla ilman livelähetystä ja ilman API-avainta.
 
-- Käynnistys: **Asetukset → Lähetys → Käynnistä demolähetys**, painike **Kokeile demolla** lähdepaneelissa, tai osoite `?demo` sivun osoitteen perässä (esim. `https://raffleri-c6128.web.app/?demo`).
+- **Vain kehittäjän testikäyttöön:** demo ei näy käyttöliittymässä, ja se on pois päältä oikealla sivulla (`npm run deploy`).
+- Käynnistys osoitteella `?demo`: paikallisesti (`npm run dev` → `http://127.0.0.1:5173/?demo`) tai testiversiossa (`npm run deploy:test` → testiosoite + `?demo`).
 - Yksi simuloitu käyttäjä ("Innokas Ilkka") kirjoittaa paljon, joten max 5 -säännön näkee toiminnassa.
 - Demolla on oma tallennus ja voittajalista, jotka nollautuvat joka käynnistyksellä. Oikeisiin arvontoihin se ei koske.
 - Arvontaikkunassa näkyy **DEMO**-merkki. Demo päättyy, kun pysäytät haun tai lataat oikean lähteen.
 
-Testiversio julkaistaan erilliseen osoitteeseen komennolla `npm run deploy:test` (oikea sivu ei muutu).
+Testiversio julkaistaan erilliseen osoitteeseen komennolla `npm run deploy:test` (oikea sivu ei muutu). Testibuild tehdään Viten `test`-tilassa, jossa demo on käytössä (ks. [src/config.js](src/config.js)).
 
 ### Teemat
 

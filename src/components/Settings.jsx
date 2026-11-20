@@ -27,7 +27,6 @@ import {
   Database,
   Check,
   Type,
-  FlaskConical,
   RotateCcw,
 } from "lucide-react";
 
@@ -119,8 +118,6 @@ function SourcesTab({
   busy,
   autoStart,
   setAutoStart,
-  onStartDemo,
-  isDemo,
 }) {
   return (
     <>
@@ -188,26 +185,6 @@ function SourcesTab({
         </label>
       </Card>
 
-      <Card tone="demo">
-        <div className="settings-demo-row">
-          <div>
-            <strong>Testaa ilman livelähetystä</strong>
-            <small>
-              Simuloidut YouTube- ja Twitch-kommentit, oma voittajalista. Ei koske
-              oikeisiin arvontoihin. Myös osoitteella <code>?demo</code>.
-            </small>
-          </div>
-          <button
-            type="button"
-            className="copy-btn"
-            onClick={onStartDemo}
-            disabled={busy}
-          >
-            <FlaskConical size={13} aria-hidden="true" />
-            {isDemo ? "Aloita demo alusta" : "Käynnistä demolähetys"}
-          </button>
-        </div>
-      </Card>
     </>
   );
 }
@@ -550,7 +527,7 @@ function ApiKeyTab({ configured, onSave }) {
   return (
     <>
       <Intro>
-        Tarvitaan YouTube-kommenttien hakuun. Twitch ja demo toimivat ilman.
+        Tarvitaan YouTube-kommenttien hakuun. Twitch toimii ilman.
       </Intro>
 
       <Card title="YouTube API -avain">
