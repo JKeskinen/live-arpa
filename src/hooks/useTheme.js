@@ -1,19 +1,19 @@
 /**
  * useTheme – Teeman hallinta
  * ---------------------------
- * Tallentaa teeman localStorageen ja asettaa sen documentElementille.
+ * Tallentaa teeman localStorageen ja asettaa sen documentElementille
+ * (data-theme). Teemat: ks. src/themes.js. Vanha "midnight" → prodiscus.
  */
 
 import { useEffect, useState } from "react";
+import { normalizeTheme, DEFAULT_THEME } from "../themes";
 
 export function useTheme() {
-  const [theme, setTheme] = useState(() => {
+  const [theme, setThemeState] = useState(() => {
     try {
-      return localStorage.getItem("raffle-theme") === "midnight"
-        ? "midnight"
-        : "prodiscus";
+      return normalizeTheme(localStorage.getItem("raffle-theme"));
     } catch {
-      return "prodiscus";
+      return DEFAULT_THEME;
     }
   });
 
@@ -25,6 +25,8 @@ export function useTheme() {
       // Teema vaihtuu myös tallennuksen epäonnistuessa
     }
   }, [theme]);
+
+  const setTheme = (next) => setThemeState(normalizeTheme(next));
 
   return { theme, setTheme };
 }

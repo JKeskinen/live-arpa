@@ -6,7 +6,13 @@
  * arvontaan.
  */
 
-import { Radio, Link2, Database, MessageCircle as Twitch } from "lucide-react";
+import {
+  Radio,
+  Link2,
+  Database,
+  MessageCircle as Twitch,
+  FlaskConical,
+} from "lucide-react";
 
 const TWITCH_STATUS = {
   connecting: "Yhdistetään…",
@@ -24,6 +30,7 @@ export default function UrlPanel({
   busy,
   nextPollIn,
   onLoad,
+  onStartDemo,
   onStop,
 }) {
   const isLive = state.streamMode === "live";
@@ -51,7 +58,7 @@ export default function UrlPanel({
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="YouTube: @prodiscus_official tai videon osoite"
+          placeholder="YouTube: @kanava tai videon osoite"
           aria-label="YouTube-kanava tai video"
         />
         <input
@@ -70,6 +77,34 @@ export default function UrlPanel({
           {busy ? "LADATAAN…" : "LATAA"}
         </button>
       </form>
+
+      <div className="demo-launch">
+        <button
+          type="button"
+          className="copy-btn"
+          onClick={onStartDemo}
+          disabled={busy}
+        >
+          <FlaskConical size={13} />
+          {state.demo ? "Aloita demo alusta" : "Kokeile demolla (simuloitu lähetys)"}
+        </button>
+      </div>
+
+      {state.demo && (
+        <div className="stream-row demo-row">
+          <div className="youtube-icon demo-icon">
+            <FlaskConical size={22} />
+          </div>
+          <div className="stream-copy">
+            <div className="stream-title">Demolähetys (simuloitu)</div>
+            <div className="stream-url">
+              {state.demo.active ? "Simuloituja kommentteja tulee" : "Pysäytetty"} •{" "}
+              {state.demo.comments} kommenttia • YouTube + Twitch
+            </div>
+          </div>
+          <div className="live-logo demo-badge">DEMO</div>
+        </div>
+      )}
 
       {state.videoId && (
         <div className="stream-row">

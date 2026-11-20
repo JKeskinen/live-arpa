@@ -43,30 +43,31 @@ footer {
     radial-gradient(ellipse at 85% 30%, #ff79000b, transparent 35%), #080808;
 }
 
-:root[data-theme="midnight"] {
-  --muted: #858ba8;
-  --border: rgba(157, 166, 220, 0.18);
-  --cyan: #5de6f5;
-  --purple: #a78bfa;
-  --panel: #111421;
-  --text: #eef0ff;
-  --page-bg: #090b14;
+/* Kuidemaen: Twitch-violetti tummalla pohjalla (Twitchin oma tumma teema) */
+:root[data-theme="kuidemaen"] {
+  --muted: #adadb8;
+  --border: rgba(145, 70, 255, 0.35);
+  --cyan: #9146ff;
+  --purple: #bf94ff;
+  --panel: #18181b;
+  --text: #efeff1;
+  --page-bg: #0e0e10;
+  /* CS2-henkiset korostukset */
+  --cs-gold: #e4ae39;
+  --cs-orange: #de9b35;
 }
 
-:root[data-theme="midnight"] body {
+:root[data-theme="kuidemaen"] body {
   color: var(--text);
   background:
-    radial-gradient(
-      ellipse at 14% 0%,
-      rgba(42, 77, 126, 0.18),
-      transparent 37%
+    radial-gradient(ellipse at 12% 0%, #9146ff2e, transparent 38%),
+    radial-gradient(ellipse at 88% 28%, #9146ff14, transparent 34%),
+    repeating-linear-gradient(
+      135deg,
+      #ffffff03 0 2px,
+      transparent 2px 14px
     ),
-    radial-gradient(
-      ellipse at 86% 26%,
-      rgba(83, 42, 132, 0.13),
-      transparent 33%
-    ),
-    #090b14;
+    #0e0e10;
 }
 
 /* =========================================
@@ -933,28 +934,7 @@ footer b {
   object-fit: contain;
 }
 
-.prodiscus-wordmark {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  color: var(--text);
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: 1px;
-}
 
-.prodiscus-disc {
-  display: grid;
-  place-items: center;
-  width: 29px;
-  height: 29px;
-  border: 2px solid var(--cyan);
-  border-radius: 50%;
-  color: var(--cyan);
-  font-size: 18px;
-  font-style: italic;
-}
 
 .branding-copy {
   display: flex;
@@ -1147,11 +1127,6 @@ footer b {
   border-radius: 50%;
 }
 
-.reel-brand-letter {
-  font-size: 30px;
-  font-weight: 900;
-  color: var(--cyan);
-}
 
 .reel-avatar.logo-rolling {
   animation: logoSpin 1.2s linear infinite;
@@ -1768,9 +1743,6 @@ label.copy-btn {
   box-shadow: 0 0 22px color-mix(in srgb, var(--cyan) 28%, transparent);
 }
 
-.raffle-brand-mark .prodiscus-wordmark {
-  transform: scale(1.25);
-}
 
 .raffle-heading-text {
   min-width: 0;
@@ -1799,9 +1771,6 @@ label.copy-btn {
   border-radius: 18px;
 }
 
-.app-shell.view-stream .raffle-brand-mark .prodiscus-wordmark {
-  transform: scale(1.7);
-}
 
 .app-shell.view-stream .raffle-brand-label {
   font-size: 13px;
@@ -1820,9 +1789,6 @@ label.copy-btn {
   .raffle-brand-mark {
     width: 52px;
     height: 52px;
-  }
-  .raffle-brand-mark .prodiscus-wordmark {
-    transform: none;
   }
 }
 
@@ -1941,9 +1907,6 @@ label.copy-btn {
   border-radius: 8px;
 }
 
-.app-shell.is-mobile .branding-panel .prodiscus-wordmark {
-  transform: scale(0.66);
-}
 
 .app-shell.is-mobile .branding-copy strong {
   font-size: 12px;
@@ -2044,9 +2007,6 @@ label.copy-btn {
   border-radius: 10px;
 }
 
-.app-shell.is-mobile .raffle-brand-mark .prodiscus-wordmark {
-  transform: scale(0.78);
-}
 
 .app-shell.is-mobile .raffle-brand-label {
   font-size: 9px;
@@ -2179,9 +2139,6 @@ label.copy-btn {
   height: 56px;
 }
 
-.app-shell.is-mobile.view-stream .raffle-brand-mark .prodiscus-wordmark {
-  transform: scale(0.92);
-}
 
 .app-shell.is-mobile.view-stream .panel-heading h1 {
   font-size: 20px;
@@ -2194,4 +2151,950 @@ label.copy-btn {
 
 .app-shell.is-mobile.view-stream .today-winners {
   max-height: 22vh;
+}
+
+/* =========================================
+   DEMOTILA (simuloitu lähetys)
+   ========================================= */
+
+.demo-launch {
+  margin-top: 10px;
+}
+
+.demo-launch .copy-btn,
+.setting-demo .copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demo-icon {
+  background: #3ddc9724;
+  color: #5ee6a8;
+}
+
+.live-logo.demo-badge {
+  color: #5ee6a8;
+  background: #3ddc9714;
+  border-color: #3ddc9745;
+}
+
+.demo-chip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #3ddc97;
+  color: #062b1c;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+}
+
+.setting-demo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  border: 1px dashed #3ddc9760;
+  border-radius: 8px;
+  background: #3ddc970a;
+}
+
+.setting-demo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 260px;
+  font-size: 12px;
+}
+
+.setting-demo small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.setting-demo code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.app-shell.is-mobile .demo-launch .copy-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+
+/* =========================================
+   KUIDEMAEN-TEEMA – Counter-Strike 2 -henkinen tyyli
+   Laatikon avaus -tunnelma: harvinaisuusvärit, kultainen voittaja,
+   terävät taktiset muodot. Ei pelin logoja, fontteja tai kuvia.
+   ========================================= */
+
+:root[data-theme="kuidemaen"] {
+  --rarity-milspec: #4b69ff;
+  --rarity-restricted: #8847ff;
+  --rarity-classified: #d32ce6;
+  --rarity-covert: #eb4b4b;
+  --rarity-gold: #e4ae39;
+}
+
+/* Terävämmät, taktiset kulmat */
+:root[data-theme="kuidemaen"] .panel,
+:root[data-theme="kuidemaen"] .stat-card,
+:root[data-theme="kuidemaen"] .settings-section {
+  border-radius: 4px;
+}
+
+:root[data-theme="kuidemaen"] .start-btn,
+:root[data-theme="kuidemaen"] .primary-btn {
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  background: linear-gradient(110deg, #772ce8, #9146ff 55%, #bf94ff);
+  color: #ffffff;
+}
+
+:root[data-theme="kuidemaen"] .start-btn {
+  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+
+:root[data-theme="kuidemaen"] .section-label,
+:root[data-theme="kuidemaen"] .stat-label {
+  text-transform: uppercase;
+}
+
+/* Arvontarulla: laatikon avaus */
+:root[data-theme="kuidemaen"] .reel-stage {
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, #0e0e10 0%, transparent 18%, transparent 82%, #0e0e10 100%),
+    repeating-linear-gradient(90deg, #ffffff05 0 1px, transparent 1px 56px),
+    radial-gradient(ellipse at center, #9146ff22, transparent 62%),
+    #121214;
+}
+
+:root[data-theme="kuidemaen"] .reel-pointer {
+  border-top-color: var(--cs-orange);
+  border-bottom-color: var(--cs-orange);
+}
+
+/* Sivuilla "esineet", joiden alla harvinaisuuspalkki */
+:root[data-theme="kuidemaen"] .reel-side {
+  position: relative;
+  padding: 18px 8px 14px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffffff06, #ffffff02);
+  opacity: 0.85;
+}
+
+:root[data-theme="kuidemaen"] .reel-side::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--rarity-color, #ffffff22);
+  box-shadow: 0 0 10px var(--rarity-color, transparent);
+}
+
+:root[data-theme="kuidemaen"] [data-rarity="milspec"] { --rarity-color: var(--rarity-milspec); }
+:root[data-theme="kuidemaen"] [data-rarity="restricted"] { --rarity-color: var(--rarity-restricted); }
+:root[data-theme="kuidemaen"] [data-rarity="classified"] { --rarity-color: var(--rarity-classified); }
+:root[data-theme="kuidemaen"] [data-rarity="covert"] { --rarity-color: var(--rarity-covert); }
+:root[data-theme="kuidemaen"] [data-rarity="gold"] { --rarity-color: var(--rarity-gold); }
+
+/* Keskiruutu: harvinaisuusväri vaihtuu pyöriessä */
+:root[data-theme="kuidemaen"] .reel-center {
+  border-radius: 4px;
+  border-color: var(--rarity-color, var(--cyan));
+  box-shadow:
+    0 0 0 1px #00000060,
+    0 0 28px color-mix(in srgb, var(--rarity-color, var(--cyan)) 35%, transparent);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+:root[data-theme="kuidemaen"] .reel-center::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: var(--rarity-color, var(--cyan));
+}
+
+/* Voittaja: kultainen, harvinaisin esine */
+:root[data-theme="kuidemaen"] .has-winner .reel-center {
+  --rarity-color: var(--cs-gold);
+  border-color: var(--cs-gold);
+  background:
+    radial-gradient(ellipse at 50% 30%, #e4ae3930, transparent 65%),
+    linear-gradient(155deg, #1f1a10, #0e0e10);
+  box-shadow:
+    0 0 0 1px #e4ae3980,
+    0 0 50px #e4ae3955,
+    inset 0 0 40px #e4ae3918;
+}
+
+:root[data-theme="kuidemaen"] .winner-label {
+  color: var(--cs-gold);
+}
+
+/* Lähtölaskenta: taktinen numero */
+:root[data-theme="kuidemaen"] .cinematic-countdown {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  color: #ffffff;
+  text-shadow:
+    0 0 26px #9146ffdd,
+    0 0 70px #9146ff77,
+    0 4px 0 var(--cs-orange);
+}
+
+/* Voittajakortti ja -lista */
+:root[data-theme="kuidemaen"] .winner-result {
+  border-radius: 4px;
+  border-color: #e4ae3966;
+  background: linear-gradient(110deg, #e4ae3912, transparent 70%);
+}
+
+:root[data-theme="kuidemaen"] .copy-btn {
+  border-radius: 3px;
+  border-color: #9146ff66;
+  background: #9146ff14;
+  color: #d5c2ff;
+}
+
+/* Teeman valintapainikkeet asetuksissa: oma värinsä kummallekin */
+.theme-option.is-prodiscus.is-active {
+  background: linear-gradient(110deg, #ff7900, #ffad42);
+  border-color: #ff7900;
+  color: #111;
+}
+
+.theme-option.is-kuidemaen.is-active {
+  background: linear-gradient(110deg, #772ce8, #9146ff, #bf94ff);
+  border-color: #9146ff;
+  color: #ffffff;
+}
+
+
+
+/* =========================================
+   ASETUKSET – TABIT (yksi osio kerrallaan)
+   ========================================= */
+
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  margin-top: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+
+.settings-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 46px;
+  padding: 0 14px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.settings-tab:hover {
+  color: var(--text);
+}
+
+.settings-tab.is-active {
+  color: var(--text);
+  border-bottom-color: var(--cyan);
+}
+
+.settings-tab svg {
+  color: var(--cyan);
+}
+
+.settings-tab:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+  border-radius: 6px 6px 0 0;
+}
+
+.settings-tab-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #ff546426;
+  color: #ff9da6;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.settings-tabpanel {
+  margin-top: 18px;
+}
+
+/* Tabin sisällä osio ei tarvitse omaa korttia */
+.settings-tabpanel .settings-section {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+/* Puhelimessa: vieritettävä rivi pyöreitä painikkeita */
+.app-shell.is-mobile .settings-tabs {
+  gap: 6px;
+  padding-bottom: 12px;
+  margin-inline: -12px;
+  padding-inline: 12px;
+}
+
+.app-shell.is-mobile .settings-tab {
+  height: 40px;
+  margin-bottom: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+.app-shell.is-mobile .settings-tab.is-active {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  color: #111;
+}
+
+.app-shell.is-mobile .settings-tab.is-active svg {
+  color: #111;
+}
+
+/* Kuidemaen: terävämmät tabit */
+:root[data-theme="kuidemaen"] .settings-tab {
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-size: 12px;
+}
+
+/* Puhelimessa tabirivi vieritetään sormella: ei näkyvää vierityspalkkia */
+.app-shell.is-mobile .settings-tabs {
+  scrollbar-width: none;
+}
+
+.app-shell.is-mobile .settings-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Kuidemaen: valkoinen teksti violetilla (kontrasti) */
+:root[data-theme="kuidemaen"] .app-shell.is-mobile .settings-tab.is-active,
+:root[data-theme="kuidemaen"] .app-shell.is-mobile .settings-tab.is-active svg {
+  color: #ffffff;
+}
+
+/* =========================================
+   TEEMAN LOGO (media-kansiosta)
+   ========================================= */
+
+/* Läpinäkyvä tunnus (Prodiscus): kokonaisena, pieni reunus */
+.branding-preview.logo-fit-contain .brand-custom-image {
+  box-sizing: border-box;
+  padding: 3px;
+  object-fit: contain;
+}
+
+/* Profiilikuva (Kuidemaen): täyttää laatikon */
+.branding-preview.logo-fit-cover .brand-custom-image {
+  object-fit: cover;
+}
+
+.reel-brand-logo.logo-fit-cover {
+  object-fit: cover;
+}
+
+/* =========================================
+   ASETUKSET – MODAALINEN DIALOGI (ui-refactor)
+   Välit: 4 · 8 · 12 · 16 · 24 · 32 px
+   Pinnat: tausta (himmennetty) → ikkuna (--panel) → kortti (vaaleampi)
+   ========================================= */
+
+.settings-overlay {
+  --surface-card: color-mix(in srgb, var(--panel) 90%, #ffffff 10%);
+  --surface-well: var(--page-bg);
+  --hairline: rgba(255, 255, 255, 0.08);
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  /* Ankkuroitu ylhäältä: ikkuna ei hypi, kun tabia vaihdetaan */
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(16px, 6vh, 64px) 24px 24px;
+  /* Sovellus jää lähes näkymättömiin: vain asetukset ovat esillä */
+  background: color-mix(in srgb, var(--page-bg) 94%, transparent);
+  backdrop-filter: blur(14px) saturate(0.7);
+  -webkit-backdrop-filter: blur(14px) saturate(0.7);
+  animation: settingsFade 0.18s ease-out;
+}
+
+.settings-dialog {
+  width: min(940px, 100%);
+  /* Aina sama korkeus: sisältö vierii ikkunan sisällä */
+  height: min(760px, calc(100dvh - clamp(16px, 6vh, 64px) - 24px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--cyan) 22%, transparent);
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--text);
+  /* Kaksiosainen varjo: laaja pehmeä + tiivis tumma, yläreunan valo */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 32px 80px rgba(0, 0, 0, 0.55),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+  outline: none;
+  overflow: hidden;
+  animation: settingsRise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes settingsFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes settingsRise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-overlay,
+  .settings-dialog {
+    animation: none;
+  }
+}
+
+/* Otsikko */
+.settings-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 32px 0;
+}
+
+.settings-dialog-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.settings-dialog-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.settings-dialog .settings-close {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.settings-dialog .settings-close:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--cyan) 45%, transparent);
+  background: color-mix(in srgb, var(--cyan) 10%, transparent);
+}
+
+/* Tabit */
+.settings-dialog .settings-tabs {
+  margin: 16px 0 0;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Sisältö: vierivä alue, kortit allekkain */
+.settings-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-intro {
+  margin: 0 0 8px;
+  max-width: 62ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.settings-intro strong {
+  color: var(--text);
+}
+
+/* Kelluva kortti */
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  background: var(--surface-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.settings-card-head h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.settings-card-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.settings-card.is-demo {
+  border-color: #3ddc9740;
+  background: color-mix(in srgb, var(--surface-card) 92%, #3ddc97 8%);
+}
+
+/* Kentät korttien sisällä: isommat, ilmavammat, "kaivoina" */
+.settings-dialog .setting-item {
+  gap: 8px;
+}
+
+.settings-dialog .setting-item > label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.settings-dialog .setting-item small,
+.settings-dialog .setting-help,
+.settings-dialog .setting-check small {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.settings-dialog input[type="text"],
+.settings-dialog input[type="password"],
+.settings-dialog select,
+.settings-dialog textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--surface-well);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.settings-dialog input[type="text"]:focus,
+.settings-dialog input[type="password"]:focus,
+.settings-dialog select:focus,
+.settings-dialog textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+
+.settings-dialog input[type="file"] {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.settings-dialog .primary-btn {
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 10px;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.settings-dialog .copy-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Tertiäärinen toiminto: linkkityyli ilman laatikkoa */
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.text-btn:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.text-btn.is-danger:hover {
+  color: #ff9da6;
+}
+
+/* Asettelu korttien sisällä */
+.settings-dialog .source-fields,
+.settings-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px 24px;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.settings-dialog .source-form {
+  gap: 16px;
+}
+
+.settings-dialog .setting-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-dialog .setting-row input {
+  flex: 1 1 240px;
+  width: auto;
+}
+
+.settings-demo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.settings-demo-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 280px;
+  font-size: 14px;
+}
+
+.settings-demo-row small {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.settings-demo-row code {
+  white-space: nowrap;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--surface-well);
+  color: var(--text);
+}
+
+.settings-dialog .setting-check {
+  font-size: 14px;
+}
+
+.settings-dialog .setting-check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.settings-footer-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Valintamerkit luettelopisteiden sijaan */
+.check-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.check-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.check-list svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--cyan);
+}
+
+.settings-dialog .view-mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.settings-dialog .view-mode-info p {
+  margin: 0;
+}
+
+.settings-dialog .view-mode-option {
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.settings-dialog .obs-guide {
+  border-top: 0;
+  padding-top: 0;
+  font-size: 14px;
+}
+
+.settings-dialog .obs-guide summary {
+  font-size: 14px;
+}
+
+/* Teeman valinta: logo + nimi + kuvaus */
+.theme-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.theme-choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--surface-well);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.theme-choice:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-choice span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.theme-choice strong {
+  font-size: 15px;
+}
+
+.theme-choice small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.theme-choice-logo {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #000000;
+  object-fit: contain;
+}
+
+.theme-choice-logo.logo-fit-cover {
+  object-fit: cover;
+}
+
+.theme-choice-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.theme-choice.is-prodiscus.is-active {
+  border-color: #ff7900;
+  box-shadow: 0 0 0 3px #ff790033;
+}
+
+.theme-choice.is-prodiscus .theme-choice-check {
+  color: #ff7900;
+}
+
+.theme-choice.is-kuidemaen.is-active {
+  border-color: #9146ff;
+  box-shadow: 0 0 0 3px #9146ff40;
+}
+
+.theme-choice.is-kuidemaen .theme-choice-check {
+  color: #bf94ff;
+}
+
+/* Puhelin: koko ruudun arkki */
+@media (max-width: 700px) {
+  .settings-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .settings-dialog {
+    height: 100dvh;
+  }
+
+  .settings-dialog {
+    width: 100%;
+    max-height: none;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .settings-dialog-head {
+    padding: 16px 16px 0;
+  }
+
+  .settings-dialog .settings-tabs {
+    padding: 0 16px 12px;
+    margin-inline: 0;
+  }
+
+  .settings-body {
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+    gap: 12px;
+  }
+
+  .settings-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .settings-dialog input[type="text"],
+  .settings-dialog input[type="password"],
+  .settings-dialog select,
+  .settings-dialog textarea {
+    font-size: 16px; /* estää iPhonen automaattisen zoomauksen */
+  }
+
+  .settings-actions .primary-btn {
+    width: 100%;
+  }
+}
+
+/* Tabirivi mahtuu dialogiin; vierityspalkki piilossa (valittu tab vierii näkyviin) */
+.settings-dialog .settings-tabs {
+  gap: 0;
+  scrollbar-width: none;
+}
+
+.settings-dialog .settings-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-dialog .settings-tab {
+  padding: 0 12px;
+}
+
+:root[data-theme="kuidemaen"] .settings-dialog .settings-tab {
+  letter-spacing: 0.4px;
+}
+
+/* Sisällön vierityspalkki: ohut, teeman värinen */
+.settings-body {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--cyan) 45%, transparent) transparent;
+}
+
+.settings-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-body::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cyan) 45%, transparent);
 }

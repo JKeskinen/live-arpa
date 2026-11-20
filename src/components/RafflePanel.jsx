@@ -32,6 +32,8 @@ export default function RafflePanel({
   winners,
   drawCountdown,
   branding,
+  profile,
+  contactInfo,
   headingTexts,
   headingInterval,
   subtitle,
@@ -40,6 +42,7 @@ export default function RafflePanel({
   onCopyWinner,
   onCopyAll,
   onClearWinners,
+  isDemo,
 }) {
   const [copied, runCopy] = useCopiedFlag();
   const drawing = drawCountdown !== null;
@@ -54,11 +57,20 @@ export default function RafflePanel({
   return (
     <div className="raffle-panel panel">
       <div className="panel-heading raffle-heading">
-        <BrandMark branding={branding} className="raffle-brand-mark" />
+        <BrandMark
+          branding={branding}
+          profile={profile}
+          className="raffle-brand-mark"
+        />
         <div className="raffle-heading-text">
           <div className="section-label raffle-brand-label">
-            <span className="raffle-brand-name">PRODISCUS</span>
+            <span className="raffle-brand-name">{profile.brandName}</span>
             <span className="raffle-brand-product">RAFFLERI</span>
+            {isDemo && (
+              <span className="demo-chip" title="Simuloitu lähetys – ei oikea arvonta">
+                DEMO
+              </span>
+            )}
             {streamTitle && (
               <span className="raffle-stream-title" title={streamTitle}>
                 {streamTitle}
@@ -77,6 +89,7 @@ export default function RafflePanel({
         winner={winner}
         drawCountdown={drawCountdown}
         branding={branding}
+        profile={profile}
       />
 
       <div className="raffle-actions">
@@ -99,9 +112,9 @@ export default function RafflePanel({
           </>
         ) : (
           <>
-            Kiekot ja tarvikkeet: Prodiscus.fi
+            {profile.hint[0]}
             <span className="hint-separator">•</span>
-            Muista myös Prodiscus-Patreon.
+            {profile.hint[1]}
           </>
         )}
       </div>
@@ -120,10 +133,15 @@ export default function RafflePanel({
               {winner.name}
             </strong>
             <p>{winner.text}</p>
-            <p style={{ fontSize: 9, marginTop: 6, color: "var(--muted)" }}>
-              Sähköpostin otsikkoon: Podcast-voittaja
-              <br />
-              Viestiin: nimi, osoite, puhelinnumero
+            <p
+              style={{
+                fontSize: 9,
+                marginTop: 6,
+                color: "var(--muted)",
+                whiteSpace: "normal",
+              }}
+            >
+              {contactInfo}
             </p>
           </div>
           <button

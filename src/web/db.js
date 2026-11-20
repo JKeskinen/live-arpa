@@ -108,6 +108,18 @@ export async function getComments(videoId) {
   return result(tx.objectStore("comments").index("byVideo").getAll(videoId));
 }
 
+/** Poistaa yhden lähteen (videoId-avaimen) kaikki kommentit. Demotila. */
+export async function deleteComments(videoId) {
+  if (!videoId) return;
+  const db = await openDb();
+  const tx = db.transaction("comments", "readwrite");
+  const store = tx.objectStore("comments");
+  store.index("byVideo").getAllKeys(videoId).onsuccess = (event) => {
+    for (const key of event.target.result || []) store.delete(key);
+  };
+  await done(tx);
+}
+
 /**
  * Tallentaa kommentit yhdessä transaktiossa ja soveltaa
  * "max 3 hyväksyttyä per kirjoittaja" -säännön. Lukeminen ja kirjoitus
@@ -177,6 +189,10 @@ export async function saveComments(videoId, source, items) {
 // Vienti ja tuonti (varmuuskopio)
 // ------------------------------------------------------------
 
+/** Demotilan simuloitu data – ei kuulu varmuuskopioihin. */
+export const DEMO_SOURCE_KEY = "demo";
+const isReal = (item) => item?.videoId !== DEMO_SOURCE_KEY;
+
 export async function exportAll() {
   const db = await openDb();
   const tx = db.transaction(["videos", "comments"], "readonly");
@@ -188,8 +204,8 @@ export async function exportAll() {
     app: "raffleri",
     format: 1,
     exportedAt: new Date().toISOString(),
-    videos,
-    comments,
+    videos: videos.filter(isReal),
+    comments: comments.filter(isReal),
   };
 }
 
@@ -204,12 +220,13 @@ export async function importAll(data) {
   }
 
   const videos = data.videos.filter(
-    (v) => v && typeof v.videoId === "string" && v.videoId,
+    (v) => v && typeof v.videoId === "string" && v.videoId && isReal(v),
   );
   const comments = data.comments.filter(
     (c) =>
       c &&
       typeof c.videoId === "string" &&
+      isReal(c) &&
       ["live", "normal", "twitch"].includes(c.source) &&
       c.id !== undefined &&
       c.id !== null,

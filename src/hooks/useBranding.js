@@ -1,13 +1,15 @@
 /**
- * useBranding – Brändäyksen ja isännän nimen hallinta
- * ---------------------------------------------------
- * Asetukset (animaatio ym.) ja isännän nimi tallennetaan localStorageen.
- * Tunnuskuva tallennetaan IndexedDB:hen, koska localStoragen ~5 Mt:n raja
- * täyttyy helposti kuvalla.
+ * useBranding – Tunnuskuva, animaatio ja isäntä (teemakohtaiset)
+ * ---------------------------------------------------------------
+ * Asetukset ja isännän nimi tallennetaan localStorageen, tunnuskuva
+ * IndexedDB:hen (localStoragen ~5 Mt:n raja täyttyy kuvalla helposti).
+ * Jokaisella teemalla on oma kuva, animaatio ja isäntä.
+ * Ennen teemoja tallennetut arvot kuuluvat Prodiscus-teemalle.
  */
 
 import { useEffect, useState } from "react";
 import { kvGet, kvSet } from "../web/db";
+import { themeProfile } from "../themes";
 
 const DEFAULT_BRANDING = {
   image: "",
@@ -15,76 +17,109 @@ const DEFAULT_BRANDING = {
   showWordmark: true,
 };
 
-const SETTINGS_KEY = "raffle-branding";
-const IMAGE_KEY = "branding-image";
+const settingsKey = (theme) => `raffle-branding:${theme}`;
+const imageKey = (theme) => `branding-image:${theme}`;
+const hostKey = (theme) => `raffle-host:${theme}`;
 
-function readSettings() {
+// Ennen teemoja käytetyt avaimet (→ Prodiscus)
+const LEGACY_SETTINGS = "raffle-branding";
+const LEGACY_IMAGE = "branding-image";
+const LEGACY_HOST = "raffle-host";
+
+function readLocal(key, legacyKey, theme) {
   try {
-    const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    const value = localStorage.getItem(key);
+    if (value === null && theme === "prodiscus") {
+      return localStorage.getItem(legacyKey);
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function readSettings(theme) {
+  try {
+    const stored = JSON.parse(readLocal(settingsKey(theme), LEGACY_SETTINGS, theme));
     return stored ? { ...DEFAULT_BRANDING, ...stored } : DEFAULT_BRANDING;
   } catch {
     return DEFAULT_BRANDING;
   }
 }
 
-function writeSettings(branding) {
+function writeSettings(theme, branding) {
   // eslint-disable-next-line no-unused-vars
   const { image, ...settings } = branding;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.setItem(settingsKey(theme), JSON.stringify(settings));
 }
 
-export function useBranding(setError) {
-  const [branding, setBranding] = useState(readSettings);
+function readHost(theme) {
+  const stored = readLocal(hostKey(theme), LEGACY_HOST, theme);
+  // Tyhjä = teeman oletus, ettei isäntä voi vahingossa osallistua arvontaan.
+  return stored?.trim() ? stored : themeProfile(theme).defaults.hostName;
+}
 
-  const [hostName, setHostName] = useState(() => {
-    try {
-      return localStorage.getItem("raffle-host") || "prodiscus_official";
-    } catch {
-      return "prodiscus_official";
-    }
-  });
+export function useBranding(setError, theme) {
+  const [branding, setBranding] = useState(() => readSettings(theme));
+  const [hostName, setHostNameState] = useState(() => readHost(theme));
 
-  // Lataa kuva IndexedDB:stä. Siirrä vanha localStoragessa ollut kuva.
+  // Teema vaihtui → lataa sen teeman asetukset ja kuva.
   useEffect(() => {
     let cancelled = false;
-    const legacyImage = readSettings().image;
+    const settings = readSettings(theme);
+    setBranding({ ...settings, image: "" });
+    setHostNameState(readHost(theme));
 
     (async () => {
       try {
-        if (legacyImage) {
-          await kvSet(IMAGE_KEY, legacyImage);
-          writeSettings(readSettings());
+        let image = (await kvGet(imageKey(theme))) || "";
+
+        // Kertasiirto ennen teemoja tallennetusta kuvasta (Prodiscus).
+        // Vanha kuva oli joko localStoragessa asetusten seassa (hyvin vanha
+        // muoto) tai IndexedDB-avaimessa "branding-image". Vanhat kopiot
+        // poistetaan siirron jälkeen, jotta "Palauta logo" pysyy voimassa
+        // eikä vanha kuva palaa seuraavalla latauksella.
+        const legacyInline = settings.image;
+        if (!image && theme === "prodiscus") {
+          const legacy = legacyInline || (await kvGet(LEGACY_IMAGE)) || "";
+          if (legacy) {
+            await kvSet(imageKey(theme), legacy);
+            image = legacy;
+          }
+          await kvSet(LEGACY_IMAGE, ""); // tyhjä = poisto
         }
-        const image = legacyImage || (await kvGet(IMAGE_KEY)) || "";
+        if (legacyInline) writeSettings(theme, settings); // kuva pois asetuksista
+
         if (!cancelled) setBranding((previous) => ({ ...previous, image }));
       } catch {
-        // Kuvaa ei saatu ladattua; käytetään oletustekstiä.
+        // Kuvaa ei saatu ladattua; käytetään teeman oletustunnusta.
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [theme]);
 
-  useEffect(() => {
+  function setHostName(value) {
+    setHostNameState(value);
     try {
-      localStorage.setItem("raffle-host", hostName);
+      localStorage.setItem(hostKey(theme), value);
     } catch {
       // tallennus epäonnistui
     }
-  }, [hostName]);
+  }
 
   function updateBranding(next) {
     if ("image" in next) {
-      kvSet(IMAGE_KEY, next.image).catch(() =>
+      kvSet(imageKey(theme), next.image).catch(() =>
         setError?.("Kuvan tallennus epäonnistui. Valitse pienempi kuvatiedosto."),
       );
     }
     setBranding((previous) => {
       const updated = { ...previous, ...next };
       try {
-        writeSettings(updated);
+        writeSettings(theme, updated);
       } catch {
         setError?.("Asetusten tallennus epäonnistui.");
       }

@@ -9,14 +9,15 @@ import BrandMark from "./BrandMark";
 
 export default function BrandingBar({
   branding,
+  profile,
   onSettingsToggle,
   nextPollIn,
 }) {
   return (
     <section className="branding-panel panel">
-      <BrandMark branding={branding} />
+      <BrandMark branding={branding} profile={profile} />
       <div className="branding-copy">
-        <strong>PRODISCUS</strong>
+        <strong>{profile.brandName}</strong>
         <span>RAFFLERI</span>
       </div>
 

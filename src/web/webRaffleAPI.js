@@ -38,6 +38,8 @@ import {
   youtubeRequest,
 } from "../../shared/raffleCore.mjs";
 import {
+  DEMO_SOURCE_KEY,
+  deleteComments,
   exportAll,
   getComments,
   importAll,
@@ -45,6 +47,7 @@ import {
   saveVideo,
 } from "./db.js";
 import { connectTwitchChat, parseTwitchChannel } from "./twitchChat.js";
+import { startDemo } from "./demoSource.js";
 
 const API_KEY_STORAGE = "raffleri-youtube-api-key";
 const LOCK_NAME = "raffleri-comment-polling";
@@ -70,6 +73,13 @@ let twitchClient = null;
 let twitch = { channel: "", key: "", status: "", comments: [] };
 let twitchQueue = [];
 let twitchFlushing = false;
+
+// Demotila (simuloitu lähetys testaukseen). Oma tallennusavain, joka
+// tyhjennetään joka käynnistyksellä – ei koske oikeisiin arvontoihin.
+const DEMO_KEY = DEMO_SOURCE_KEY;
+let demoClient = null;
+let demoComments = [];
+let demoQueue = Promise.resolve();
 
 const listeners = {
   update: new Set(),
@@ -160,7 +170,7 @@ function releaseTabLock() {
 
 /** Vapauttaa välilehtilukon, jos YouTube- eikä Twitch-haku ole käynnissä. */
 function releaseLockIfIdle() {
-  if (!polling && !twitchActive()) releaseTabLock();
+  if (!polling && !twitchActive() && !demoClient) releaseTabLock();
 }
 
 let persistRequested = false;
@@ -185,6 +195,7 @@ function twitchActive() {
 }
 
 function allComments() {
+  if (demoClient || demoComments.length) return demoComments;
   return twitch.comments.length
     ? sortComments([...comments, ...twitch.comments])
     : comments;
@@ -195,7 +206,7 @@ function snapshot() {
     videoId,
     streamTitle,
     streamMode,
-    polling: polling || twitchActive(),
+    polling: polling || twitchActive() || Boolean(demoClient),
     comments: allComments(),
     channel: channel ? { title: channel.title, handle: channel.handle } : null,
     upcoming,
@@ -208,8 +219,14 @@ function snapshot() {
         comments: twitch.comments.length,
       }
     : null;
+  snap.demo =
+    demoClient || demoComments.length
+      ? { active: Boolean(demoClient), comments: demoComments.length }
+      : null;
   // Arvonnan tunniste (voittajalista): kaikki aktiiviset lähteet yhdessä.
-  snap.raffleKey = [videoId, twitch.key].filter(Boolean).join("+");
+  snap.raffleKey = snap.demo
+    ? DEMO_KEY
+    : [videoId, twitch.key].filter(Boolean).join("+");
   return snap;
 }
 
@@ -657,9 +674,66 @@ async function fetchAllNormalComments(session) {
 // Julkinen rajapinta
 // ------------------------------------------------------------
 
+// ------------------------------------------------------------
+// Demotila
+// ------------------------------------------------------------
+
+function stopDemo() {
+  demoClient?.stop();
+  demoClient = null;
+}
+
+/**
+ * Käynnistää demon. Palauttaa false, jos käyttäjä ehti pysäyttää tai
+ * ladata toisen lähteen awaitien aikana (session vaihtui) – silloin demoa
+ * ei käynnistetä, ettei se jää pyörimään ilman välilehtilukkoa.
+ */
+async function startDemoSource(session) {
+  await deleteComments(DEMO_KEY);
+  if (session !== sessionId) return false;
+  await saveVideo(DEMO_KEY, "Demolähetys (simuloitu)", "live");
+  if (session !== sessionId) return false;
+  demoComments = [];
+  demoQueue = Promise.resolve();
+
+  const client = startDemo((batch) => {
+    // Tallennus jonossa, jotta max 3 -sääntö lasketaan oikein.
+    // Vain tämän demon viestit (ei vanhan, jos demo käynnistettiin uudelleen).
+    demoQueue = demoQueue.then(async () => {
+      if (demoClient !== client) return;
+      const added = [];
+      for (const platform of ["youtube", "twitch"]) {
+        const items = batch
+          .filter((m) => m.platform === platform)
+          .map((m) => m.comment);
+        if (items.length) {
+          added.push(
+            ...(await saveComments(
+              DEMO_KEY,
+              platform === "twitch" ? "twitch" : "live",
+              items,
+            )),
+          );
+        }
+      }
+      if (demoClient !== client) return;
+      demoComments = sortComments([...demoComments, ...added]);
+      publishState();
+    }).catch(publishError);
+  });
+  demoClient = client;
+
+  emit(
+    "notice",
+    "DEMOTILA: kommentit ovat simuloituja. Pysäytä demo tai lataa oikea lähde lopettaaksesi.",
+  );
+  publishState();
+  return true;
+}
+
 /**
  * Käynnistää haun. input on joko merkkijono (YouTube) tai
- * { youtube, twitch } – kumpi tahansa voi olla tyhjä.
+ * { youtube, twitch, demo } – YouTube/Twitch voivat olla tyhjiä.
  */
 async function loadStream(input) {
   const sources =
@@ -669,8 +743,29 @@ async function loadStream(input) {
 
   stopCurrentWork();
   stopTwitch();
+  stopDemo();
+  demoComments = [];
   const session = sessionId;
   emit("notice", "");
+
+  if (sources.demo) {
+    const gotDemoLock = await acquireLock();
+    if (!gotDemoLock) {
+      throw new Error(
+        "Kommenttien haku on jo käynnissä toisessa Raffleri-välilehdessä. Käytä sitä tai sulje se ensin.",
+      );
+    }
+    // Pysäytys tai uusi lataus ehti tulla odotuksen aikana: ei demoa.
+    if (session !== sessionId) {
+      releaseLockIfIdle();
+      return snapshot();
+    }
+    resetSource();
+    clearTwitch();
+    const started = await startDemoSource(session);
+    if (!started) releaseLockIfIdle();
+    return snapshot();
+  }
 
   const parsedVideoId = youtubeInput ? parseVideoId(youtubeInput) : "";
   const parsedChannel =
@@ -754,6 +849,7 @@ async function loadStream(input) {
 async function stopStream() {
   stopCurrentWork();
   stopTwitch();
+  stopDemo();
   releaseTabLock();
   emit("notice", "");
   publishState();

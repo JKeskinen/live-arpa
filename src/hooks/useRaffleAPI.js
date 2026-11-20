@@ -86,10 +86,11 @@ export function useRaffleAPI(setError) {
     setError("");
     setNextPollIn(null);
     try {
-      const data = await api.loadStream({
-        youtube: sources.youtube.trim(),
-        twitch: sources.twitch.trim(),
-      });
+      const data = await api.loadStream(
+        sources.demo
+          ? { demo: true }
+          : { youtube: sources.youtube.trim(), twitch: sources.twitch.trim() },
+      );
       setState(data);
     } catch (err) {
       setError(err.message || "Videota ei voitu ladata.");

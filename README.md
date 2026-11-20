@@ -14,8 +14,10 @@ Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 - **Twitch:** kanavan chat reaaliajassa (esim. `twitch.tv/kuidemaen`), ei API-avainta.
 - **Useampi voittaja:** sama henkilö voi voittaa vain kerran. Voittajan palvelu (YouTube / Twitch) näkyy logona.
 - **Näkymät:** Normaali, Tiivistetty ja Stream mode (vain arvontaikkuna lähetykseen).
-- **Otsikko:** vaihtuvat Prodiscus-sloganit tai kiinteä teksti, muokattava alarivi.
-- **Brändäys:** oma tunnuskuva, animaatio ja kaksi väriteemaa.
+- **Teemat:** Prodiscus ja Kuidemaen (Twitch, Counter-Strike 2 -henkinen). Teema vaihtaa värit, logon ja tekstit.
+- **Tekstit:** vaihtuvat sloganit tai kiinteä otsikko, alarivi ja voittajan ohje – teemakohtaisesti muokattavissa.
+- **Brändäys:** oma tunnuskuva ja animaatio teemakohtaisesti.
+- **Demotila:** simuloitu lähetys testaukseen (`?demo`).
 - **Mobiili:** näkymä mukautuu puhelimeen automaattisesti.
 - **Varmuuskopio:** kommentit JSON-tiedostoksi ja takaisin.
 
@@ -32,7 +34,7 @@ Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 ## Käyttö
 
 1. Avaa https://raffleri-c6128.web.app
-2. Paina oikean yläkulman rataskuvaketta ⚙️ ja liitä YouTube API -avain kohtaan **YouTube API -avain** (ks. alla). Pelkkä Twitch toimii ilman avainta.
+2. Paina oikean yläkulman rataskuvaketta ⚙️. Asetukset avautuvat omaan ikkunaansa (sulkeutuu Esc-näppäimellä tai klikkaamalla ikkunan ulkopuolelle). Liitä YouTube API -avain tabiin **API-avain** (ks. alla). Pelkkä Twitch toimii ilman avainta.
 3. Kirjoita lähteet ja paina **LATAA**:
    - **YouTube-kanava tai video**, esim. `@prodiscus_official`
    - **Twitch-kanava**, esim. `twitch.tv/kuidemaen`
@@ -56,9 +58,35 @@ Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 - Jos yhteys katkeaa, se yhdistetään automaattisesti uudelleen.
 - Saman kanavan kommentit kuuluvat samaan arvontaan, jos kanavalla on ollut toimintaa viimeisen 12 tunnin aikana. Ensi viikon lähetys alkaa puhtaalta pöydältä.
 
+### Demotila (testaus ilman livelähetystä)
+
+Simuloitu lähetys tuottaa YouTube- ja Twitch-kommentteja, joten arvontaa, näkymiä ja sääntöjä voi kokeilla ilman livelähetystä ja ilman API-avainta.
+
+- Käynnistys: **Asetukset → Lähetys → Käynnistä demolähetys**, painike **Kokeile demolla** lähdepaneelissa, tai osoite `?demo` sivun osoitteen perässä (esim. `https://raffleri-c6128.web.app/?demo`).
+- Yksi simuloitu käyttäjä ("Innokas Ilkka") kirjoittaa paljon, joten max 3 -säännön näkee toiminnassa.
+- Demolla on oma tallennus ja voittajalista, jotka nollautuvat joka käynnistyksellä. Oikeisiin arvontoihin se ei koske.
+- Arvontaikkunassa näkyy **DEMO**-merkki. Demo päättyy, kun pysäytät haun tai lataat oikean lähteen.
+
+Testiversio julkaistaan erilliseen osoitteeseen komennolla `npm run deploy:test` (oikea sivu ei muutu).
+
+### Teemat
+
+Teeman logo tulee `media`-kansiosta: Prodiscus `media/prodiscus-logo.png`, Kuidemaen `media/kuidemaen-profile-pic-300x300.png`. Oma tunnuskuva asetuksista korvaa teeman logon.
+
+Teema valitaan asetuksista (**Ulkoasu**-tabi). Kummallakin teemalla on omat tallennetut tekstit, voittajan ohje, tunnuskuva, animaatio ja isäntä, joten teemat eivät sekoitu keskenään.
+
+| | Prodiscus | Kuidemaen |
+|---|---|---|
+| Tyyli | musta ja oranssi | Twitch-violetti, Counter-Strike 2 -henkinen (harvinaisuusvärit, kultainen voittaja) |
+| Logo | P + PRODISCUS | K + KUIDEMAEN |
+| Voittajan ohje | sähköposti order@prodiscus.fi | kuiskaus @kuidemaen Twitchissä |
+| Isäntä | prodiscus_official | kuidemaen |
+
+Oletustekstit ovat tiedostossa [src/themes.js](src/themes.js). Uuden teeman voi lisätä sinne ja sen värit tiedostoon `src/App.css` (`:root[data-theme="…"]`). Kuidemaen-teema ei käytä Counter-Striken logoja, fontteja tai pelin kuvia.
+
 ### Näkymät ja OBS
 
-Näkymä valitaan asetuksista (**Näkymä**):
+Näkymä valitaan asetuksista (**Näkymä**-tabi):
 
 | Näkymä | Näkyvissä |
 |---|---|
@@ -100,6 +128,7 @@ npm run dev            # kehityspalvelin osoitteessa http://127.0.0.1:5173
 npm run build          # tuotantoversio dist-kansioon
 npm run preview        # esikatsele buildia osoitteessa http://127.0.0.1:5173
 npm run deploy         # build + julkaisu Firebase Hostingiin
+npm run deploy:test    # build + testiversio erilliseen osoitteeseen (30 pv)
 ```
 
 Firebase-julkaisu vaatii kerran: `npm install -g firebase-tools` ja `firebase login`.
@@ -112,7 +141,8 @@ Firebase-asetukset (tietoturvaotsakkeet, välimuisti) ovat tiedostossa [firebase
 | `src/` | React-käyttöliittymä (komponentit, hookit, tyylit) |
 | `src/web/` | Kommenttien haku: YouTube, Twitch-chat ja IndexedDB-tallennus |
 | `shared/` | Arvonnan säännöt ja YouTube-apufunktiot |
-| `media/` | Kuvat: `prodiscus-logo.png`, `youtube-logo.png` (sovelluksen käyttämä), `youtube-logo-original.png` |
+| `src/themes.js` | Teemat: brändi, oletustekstit ja voittajan ohje |
+| `media/` | Kuvat: teemojen logot `prodiscus-logo.png` ja `kuidemaen-profile-pic-300x300.png`, `youtube-logo.png` (palvelulogo), `youtube-logo-original.png` |
 | `firebase.json`, `.firebaserc` | Firebase Hosting -asetukset |
 
 Uudet kuvat ja logot lisätään `media/`-kansioon. Koodissa niihin viitataan importilla, esim. `import logo from "../../media/youtube-logo.png"`; Vite liittää ne julkaisuun.

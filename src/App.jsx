@@ -12,7 +12,9 @@ import { useBranding } from "./hooks/useBranding";
 import { useRaffleAPI } from "./hooks/useRaffleAPI";
 import { useWinners } from "./hooks/useWinners";
 import { useIsMobile } from "./hooks/useIsMobile";
-import { useHeading, headingTexts } from "./hooks/useHeading";
+import { winnerChatMessage, winnersListMessage } from "./utils/winnerMessage";
+import { useHeading, headingTexts, contactInfoOf } from "./hooks/useHeading";
+import { themeProfile } from "./themes";
 import { Settings2 } from "lucide-react";
 import { PLATFORM_NAME, platformOf } from "./components/PlatformLogo";
 import { time } from "./utils/format";
@@ -80,15 +82,20 @@ export default function App() {
 
   const { theme, setTheme } = useTheme();
   const isMobile = useIsMobile();
-  const { heading, updateHeading, resetHeading } = useHeading();
-  const visibleHeadings = useMemo(() => headingTexts(heading), [heading]);
+  const profile = themeProfile(theme);
+  const { heading, updateHeading, resetHeading } = useHeading(theme);
+  const visibleHeadings = useMemo(
+    () => headingTexts(heading, theme),
+    [heading, theme],
+  );
+  const contactInfo = contactInfoOf(heading, theme);
   const {
     branding,
     updateBranding,
     selectBrandingImage,
     hostName,
     setHostName,
-  } = useBranding(setError);
+  } = useBranding(setError, theme);
 
   const {
     state,
@@ -108,13 +115,21 @@ export default function App() {
   useEffect(() => writeStored("raffle-source", url), [url]);
   useEffect(() => writeStored("raffle-twitch-source", twitchUrl), [twitchUrl]);
   const hasSource = Boolean(url.trim() || twitchUrl.trim());
-  useEffect(() => writeStored("raffle-autostart", String(autoStart)), [autoStart]);
+  useEffect(
+    () => writeStored("raffle-autostart", String(autoStart)),
+    [autoStart],
+  );
 
   // Automaattinen haku kerran sivun avautuessa (asetuksista päälle).
   const autoStarted = useRef(false);
   useEffect(() => {
     if (autoStarted.current || !configLoaded) return;
     autoStarted.current = true;
+    // Osoite ?demo käynnistää simuloidun lähetyksen (testiversio).
+    if (new URLSearchParams(window.location.search).has("demo")) {
+      handleStartDemo();
+      return;
+    }
     // YouTube tarvitsee API-avaimen; pelkkä Twitch toimii ilman.
     const youtubeReady = !url.trim() || apiKeyConfigured;
     if (autoStart && hasSource && youtubeReady) {
@@ -127,14 +142,16 @@ export default function App() {
   const winnerTimer = useRef(null);
 
   const entries = useMemo(() => {
-    const host = hostName.trim().toLocaleLowerCase("fi-FI");
+    // Vertailumuoto: pienet kirjaimet, ilman alun @-merkkiä (YouTube antaa
+    // nimen usein @-kahvana). Tyhjä kenttä = teeman oletusisäntä.
+    const normalize = (value) =>
+      String(value || "").trim().replace(/^@+/, "").toLocaleLowerCase("fi-FI");
+    const host = normalize(hostName) || normalize(profile.defaults.hostName);
     return state.comments.filter((comment) => {
       if (!comment.accepted) return false;
-      if (!host) return true;
-      const name = (comment.name || "").trim().toLocaleLowerCase("fi-FI");
-      return name !== host;
+      return normalize(comment.name) !== host;
     });
-  }, [state.comments, hostName]);
+  }, [state.comments, hostName, profile]);
 
   // Useampi voittaja: aiemmat voittajat (kaikki heidän kommenttinsa)
   // poistetaan seuraavista arvonnoista.
@@ -149,6 +166,7 @@ export default function App() {
   const isLive = state.streamMode === "live";
   const isNormal = state.streamMode === "normal";
   const hasTwitch = Boolean(state.twitch);
+  const isDemo = Boolean(state.demo);
 
   // Pyörivä arvonta – näyttää satunnaisia kommentteja
   useEffect(() => {
@@ -165,14 +183,14 @@ export default function App() {
   // Automaattinen käynnistys kun video on ladattu ja kommentteja on
   useEffect(() => {
     if (
-      (isLive || isNormal || hasTwitch) &&
+      (isLive || isNormal || hasTwitch || isDemo) &&
       pool.length > 0 &&
       !rolling &&
       !winner
     ) {
       startRaffle();
     }
-  }, [isLive, isNormal, hasTwitch, pool.length, rolling, winner]);
+  }, [isLive, isNormal, hasTwitch, isDemo, pool.length, rolling, winner]);
 
   async function handleLoad(event) {
     event?.preventDefault();
@@ -181,6 +199,25 @@ export default function App() {
     setRolling(false);
     setDrawCountdown(null);
     await loadStream({ youtube: url, twitch: twitchUrl });
+  }
+
+  // Simuloitu lähetys testaukseen. Demon voittajalista nollataan joka
+  // kerta; oikeiden arvontojen voittajiin ei kosketa.
+  async function handleStartDemo(event) {
+    event?.preventDefault();
+    setWinner(null);
+    setDisplayed(null);
+    setRolling(false);
+    setDrawCountdown(null);
+    if (state.raffleKey === "demo") clearWinners();
+    else {
+      try {
+        localStorage.removeItem("raffle-winners:demo");
+      } catch {
+        // ei kriittinen
+      }
+    }
+    await loadStream({ demo: true });
   }
 
   async function handleStop() {
@@ -252,9 +289,6 @@ export default function App() {
     slowDown();
   }
 
-  const contactInfo = `Sähköpostin otsikkoon: Podcast-voittaja
-Viestiin: nimi, osoite, puhelinnumero`;
-
   async function copyText(text) {
     try {
       await navigator.clipboard.writeText(text);
@@ -265,22 +299,22 @@ Viestiin: nimi, osoite, puhelinnumero`;
     }
   }
 
+  // Yksi rivi chattiin (ei rivinvaihtoja, max 200 merkkiä).
   function copyWinner(target = winner) {
     if (!target) return false;
-    return copyText(
-      `ONNITTELUT VOITOSTA: ${target.name} (${PLATFORM_NAME[platformOf(target)]}), ${target.text}\n\n${contactInfo}`,
-    );
+    return copyText(winnerChatMessage(target.name, contactInfo));
   }
 
+  // Monirivinen lista muistiinpanoihin / sähköpostiin.
   function copyAllWinners() {
     if (!winners.length) return false;
-    const list = winners
-      .map(
-        (w, i) =>
-          `${i + 1}. ${w.name} (${PLATFORM_NAME[platformOf(w)]}): ${w.text}`,
-      )
-      .join("\n");
-    return copyText(`ONNITTELUT VOITTAJILLE!\n${list}\n\n${contactInfo}`);
+    return copyText(
+      winnersListMessage(
+        winners,
+        (w) => PLATFORM_NAME[platformOf(w)],
+        contactInfo,
+      ),
+    );
   }
 
   function handleClearWinners() {
@@ -295,7 +329,9 @@ Viestiin: nimi, osoite, puhelinnumero`;
   }
 
   return (
-    <main className={`app-shell view-${viewMode} ${isMobile ? "is-mobile" : ""}`}>
+    <main
+      className={`app-shell view-${viewMode} ${isMobile ? "is-mobile" : ""}`}
+    >
       {viewMode === "stream" && (
         <button
           type="button"
@@ -310,6 +346,7 @@ Viestiin: nimi, osoite, puhelinnumero`;
 
       <BrandingBar
         branding={branding}
+        profile={profile}
         onSettingsToggle={() => setSettingsOpen((open) => !open)}
         nextPollIn={nextPollIn}
       />
@@ -318,6 +355,7 @@ Viestiin: nimi, osoite, puhelinnumero`;
         <Settings
           theme={theme}
           setTheme={setTheme}
+          profile={profile}
           branding={branding}
           updateBranding={updateBranding}
           selectBrandingImage={selectBrandingImage}
@@ -333,6 +371,8 @@ Viestiin: nimi, osoite, puhelinnumero`;
           twitchUrl={twitchUrl}
           setTwitchUrl={setTwitchUrl}
           onLoad={handleLoad}
+          onStartDemo={handleStartDemo}
+          isDemo={isDemo}
           busy={busy}
           autoStart={autoStart}
           setAutoStart={setAutoStart}
@@ -353,10 +393,11 @@ Viestiin: nimi, osoite, puhelinnumero`;
         busy={busy}
         nextPollIn={nextPollIn}
         onLoad={handleLoad}
+        onStartDemo={handleStartDemo}
         onStop={handleStop}
       />
 
-      {configNotice && (
+      {configNotice && !isDemo && (
         <div className="notice">
           <span>{configNotice}</span>
         </div>
@@ -388,6 +429,8 @@ Viestiin: nimi, osoite, puhelinnumero`;
           headingTexts={visibleHeadings}
           headingInterval={heading.intervalSec}
           subtitle={heading.subtitle}
+          contactInfo={contactInfo}
+          profile={profile}
           streamTitle={
             heading.showStreamTitle && state.videoId ? state.streamTitle : ""
           }
@@ -396,6 +439,7 @@ Viestiin: nimi, osoite, puhelinnumero`;
           onCopyWinner={copyWinner}
           onCopyAll={copyAllWinners}
           onClearWinners={handleClearWinners}
+          isDemo={isDemo}
         />
         <CommentsPanel
           comments={state.comments}
