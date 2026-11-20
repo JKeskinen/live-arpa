@@ -23,7 +23,7 @@ Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 
 ## Arvonnan säännöt
 
-- Kolme ensimmäistä kommenttia per henkilö osallistuu (= 3 arpaa). Neljättä ja sitä seuraavia ei lisätä.
+- Viisi ensimmäistä kommenttia per henkilö osallistuu (= 5 arpaa). Kuudetta ja sitä seuraavia ei lisätä. Raja on vakio `MAX_ACCEPTED_PER_AUTHOR` tiedostossa [shared/raffleCore.mjs](shared/raffleCore.mjs).
 - Sääntö pätee YouTubessa ja Twitchissä erikseen. Samaa ihmistä ei voi tunnistaa palveluiden välillä.
 - Henkilö tunnistetaan palvelun käyttäjä-ID:llä (YouTube: kanava-ID, Twitch: user-id), sen puuttuessa nimellä.
 - Voittaja arvotaan tasaisesti hyväksyttyjen kommenttien joukosta.
@@ -63,7 +63,7 @@ Se on web-sovellus, joka toimii selaimessa ilman asennusta:
 Simuloitu lähetys tuottaa YouTube- ja Twitch-kommentteja, joten arvontaa, näkymiä ja sääntöjä voi kokeilla ilman livelähetystä ja ilman API-avainta.
 
 - Käynnistys: **Asetukset → Lähetys → Käynnistä demolähetys**, painike **Kokeile demolla** lähdepaneelissa, tai osoite `?demo` sivun osoitteen perässä (esim. `https://raffleri-c6128.web.app/?demo`).
-- Yksi simuloitu käyttäjä ("Innokas Ilkka") kirjoittaa paljon, joten max 3 -säännön näkee toiminnassa.
+- Yksi simuloitu käyttäjä ("Innokas Ilkka") kirjoittaa paljon, joten max 5 -säännön näkee toiminnassa.
 - Demolla on oma tallennus ja voittajalista, jotka nollautuvat joka käynnistyksellä. Oikeisiin arvontoihin se ei koske.
 - Arvontaikkunassa näkyy **DEMO**-merkki. Demo päättyy, kun pysäytät haun tai lataat oikean lähteen.
 

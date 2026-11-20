@@ -6,7 +6,7 @@
  *
  * Testattavat tilanteet:
  * - Kommentteja molemmista palveluista (palvelulogot)
- * - "Innokas Ilkka" kirjoittaa paljon → max 3 -sääntö
+ * - "Innokas Ilkka" kirjoittaa paljon → max 5 -sääntö (MAX_ACCEPTED_PER_AUTHOR)
  * - Tasainen virta uusia kommentteja koko ajan
  */
 
@@ -61,9 +61,10 @@ function pick(list) {
 let seq = 0;
 
 function makeMessage() {
-  // Innokas Ilkka kirjoittaa noin joka neljännen viestin.
+  // Innokas Ilkka kirjoittaa noin joka kolmannen viestin, jotta raja
+  // (5 per henkilö) ylittyy pian ja säännön näkee toiminnassa.
   const [name, platform] =
-    Math.random() < 0.25 ? USERS.find((u) => u[0] === EAGER_USER) : pick(USERS);
+    Math.random() < 0.35 ? USERS.find((u) => u[0] === EAGER_USER) : pick(USERS);
   seq++;
   return {
     platform,

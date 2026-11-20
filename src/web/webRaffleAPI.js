@@ -697,7 +697,7 @@ async function startDemoSource(session) {
   demoQueue = Promise.resolve();
 
   const client = startDemo((batch) => {
-    // Tallennus jonossa, jotta max 3 -sääntö lasketaan oikein.
+    // Tallennus jonossa, jotta max N -sääntö lasketaan oikein.
     // Vain tämän demon viestit (ei vanhan, jos demo käynnistettiin uudelleen).
     demoQueue = demoQueue.then(async () => {
       if (demoClient !== client) return;

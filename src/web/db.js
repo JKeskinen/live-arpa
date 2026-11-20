@@ -122,7 +122,7 @@ export async function deleteComments(videoId) {
 
 /**
  * Tallentaa kommentit yhdessä transaktiossa ja soveltaa
- * "max 3 hyväksyttyä per kirjoittaja" -säännön. Lukeminen ja kirjoitus
+ * "max N hyväksyttyä per kirjoittaja" -säännön (MAX_ACCEPTED_PER_AUTHOR). Lukeminen ja kirjoitus
  * tehdään samassa transaktiossa, jotta sääntö ei voi pettää.
  *
  * @param {string} videoId

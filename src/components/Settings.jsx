@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { THEMES } from "../themes";
 import { CONTACT_INFO_MAX_LENGTH } from "../utils/winnerMessage";
+import { MAX_ACCEPTED_PER_AUTHOR } from "../../shared/raffleCore.mjs";
 import {
   X,
   Radio,
@@ -433,8 +434,8 @@ function RaffleTab({ hostName, setHostName, profile }) {
         <ul className="check-list">
           <li>
             <Check size={14} aria-hidden="true" />
-            Enintään 3 kommenttia per henkilö (= 3 arpaa), YouTubessa ja
-            Twitchissä erikseen
+            Enintään {MAX_ACCEPTED_PER_AUTHOR} kommenttia per henkilö (={" "}
+            {MAX_ACCEPTED_PER_AUTHOR} arpaa), YouTubessa ja Twitchissä erikseen
           </li>
           <li>
             <Check size={14} aria-hidden="true" />

@@ -7,6 +7,7 @@
 import { Radio, MessageSquare, ShieldCheck } from "lucide-react";
 import { time } from "../utils/format";
 import PlatformLogo from "./PlatformLogo";
+import { MAX_ACCEPTED_PER_AUTHOR } from "../../shared/raffleCore.mjs";
 
 export default function CommentsPanel({ comments, isLive, totalComments }) {
   const latest = [...comments].reverse().slice(0, 20);
@@ -59,8 +60,9 @@ export default function CommentsPanel({ comments, isLive, totalComments }) {
         <div>
           <strong>Osallistumissäännöt</strong>
           <p>
-            Kommentoi osallistuaksesi arvontaan. Arvonnassa max 3 kommenttia
-            yhdeltä kommentoijalta (YouTube ja Twitch erikseen).
+            Kommentoi osallistuaksesi arvontaan. Arvonnassa max{" "}
+            {MAX_ACCEPTED_PER_AUTHOR} kommenttia yhdeltä kommentoijalta (YouTube
+            ja Twitch erikseen).
           </p>
         </div>
       </div>

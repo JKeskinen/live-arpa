@@ -12,6 +12,7 @@
 
 import prodiscusLogo from "../media/prodiscus-logo.png";
 import kuidemaenLogo from "../media/kuidemaen-profile-pic-300x300.png";
+import { MAX_ACCEPTED_PER_AUTHOR } from "../shared/raffleCore.mjs";
 
 export const THEMES = {
   prodiscus: {
@@ -63,7 +64,7 @@ export const THEMES = {
         ],
         intervalSec: 6,
         showStreamTitle: false,
-        subtitle: "Jokainen chat-viesti on arpa – enintään 3 per katsoja",
+        subtitle: `Jokainen chat-viesti on arpa – enintään ${MAX_ACCEPTED_PER_AUTHOR} per katsoja`,
         contactInfo:
           "Lähetä kuiskaus (whisper) @kuidemaen Twitchissä 24 tunnin sisällä ja kerro, miten haluat palkinnon toimitettavan.",
       },

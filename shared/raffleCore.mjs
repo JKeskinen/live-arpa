@@ -10,7 +10,8 @@
  * - 30 s väli ≈ 120 kutsua / tunti ≈ 600 yksikköä / tunti
  */
 
-export const MAX_ACCEPTED_PER_AUTHOR = 3;
+/** Montako kommenttia per henkilö osallistuu arvontaan (= arpaa). */
+export const MAX_ACCEPTED_PER_AUTHOR = 5;
 export const LIVE_POLL_INTERVAL_MS = 30000;
 export const LIVE_RETRY_INTERVAL_MS = 45000;
 /** Montako kanavan uusinta videota tarkistetaan, kun livea etsitään
